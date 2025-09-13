@@ -105,7 +105,7 @@ class ExampleMentraOSApp extends AppServer {
   }
 
   /**
-   * Cache a photo for display
+   * Cache a photo for display and send to backend for OCR analysis
    */
   private async cachePhoto(photo: PhotoData, userId: string) {
     // create a new stored photo object which includes the photo data and the user id
@@ -119,14 +119,37 @@ class ExampleMentraOSApp extends AppServer {
       size: photo.size
     };
 
-    // this example app simply stores the photo in memory for display in the webview, but you could also send the photo to an AI api,
-    // or store it in a database or cloud storage, send it to roboflow, or do other processing here
-
     // cache the photo for display
     this.photos.set(userId, cachedPhoto);
     // update the latest photo timestamp
     this.latestPhotoTimestamp.set(userId, cachedPhoto.timestamp.getTime());
     this.logger.info(`Photo cached for user ${userId}, timestamp: ${cachedPhoto.timestamp}`);
+
+    // Send photo to backend for OCR analysis
+    try {
+      const base64Image = photo.buffer.toString('base64');
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+      
+      const response = await fetch(`${backendUrl}/analyze-photo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_base64: base64Image
+        })
+      });
+
+      if (response.ok) {
+        const ocrResult = await response.json();
+        this.logger.info(`OCR analysis completed for user ${userId}: ${ocrResult.text}`);
+        // You can store the OCR result or use it as needed
+      } else {
+        this.logger.error(`OCR analysis failed: ${response.statusText}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error sending photo to backend: ${error}`);
+    }
   }
 
 
