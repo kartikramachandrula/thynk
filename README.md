@@ -57,4 +57,4 @@ MentraOS install links: [mentra.glass/install](https://mentra.glass/install)
 
 ### Next Steps
 
-Check out the full documentation at [docs.mentra.glass](https://docs.mentra.glass/camera)
+Check out the full documentation at [docs.mentra.glass](.https://docs.mentra.glass/camera)
