@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, HelpCircle, BookOpen, Sparkles, Bot, Upload, Paperclip, Play, Pause, Square, Timer } from 'lucide-react';
+import { Send, HelpCircle, BookOpen, Sparkles, Bot, Upload, Paperclip, Play, Pause, Square, Timer, StickyNote, Plus, X, Edit3 } from 'lucide-react';
 // import { useToast } from '@/hooks/use-toast';
 import brainIllustration from '@/assets/brain-illustration.jpg';
 import studyDesk from '@/assets/study-desk.jpg';
@@ -24,6 +24,12 @@ interface Message {
   timestamp: Date;
 }
 
+interface Note {
+  id: string;
+  content: string;
+  timestamp: Date;
+}
+
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -34,6 +40,9 @@ const ChatInterface = () => {
   const [totalSeconds, setTotalSeconds] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [timerCompleted, setTimerCompleted] = useState<boolean>(false);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [currentNote, setCurrentNote] = useState<string>('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +122,61 @@ const ChatInterface = () => {
       }
     };
   }, []);
+
+  // Note functions
+  const addNote = () => {
+    if (!currentNote.trim()) return;
+    
+    const newNote: Note = {
+      id: Date.now().toString(),
+      content: currentNote.trim(),
+      timestamp: new Date(),
+    };
+    
+    setNotes(prev => [...prev, newNote]);
+    setCurrentNote('');
+  };
+
+  const deleteNote = (noteId: string) => {
+    setNotes(prev => prev.filter(note => note.id !== noteId));
+  };
+
+  const startEditingNote = (noteId: string, content: string) => {
+    setEditingNoteId(noteId);
+    setCurrentNote(content);
+  };
+
+  const saveEditedNote = () => {
+    if (!editingNoteId || !currentNote.trim()) return;
+    
+    setNotes(prev => prev.map(note => 
+      note.id === editingNoteId 
+        ? { ...note, content: currentNote.trim() }
+        : note
+    ));
+    
+    setEditingNoteId(null);
+    setCurrentNote('');
+  };
+
+  const cancelEditing = () => {
+    setEditingNoteId(null);
+    setCurrentNote('');
+  };
+
+  const handleNoteKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (editingNoteId) {
+        saveEditedNote();
+      } else {
+        addNote();
+      }
+    }
+    if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  };
 
   const addMessage = (content: string, type: 'user' | 'ai') => {
     const newMessage: Message = {
@@ -301,6 +365,91 @@ const ChatInterface = () => {
               </div>
             </div>
           </div>
+
+          {/* Notes Section in top right corner */}
+          <div className="absolute top-24 right-4 z-20">
+            <div className="bg-white/95 backdrop-blur-sm rounded-lg p-3 border border-gray-200 shadow-sm min-w-[280px] max-w-[320px]">
+              <div className="flex items-center gap-2 mb-2">
+                <StickyNote className="w-4 h-4 text-indigo-600" />
+                <span className="text-gray-800 font-medium text-sm">Quick Notes</span>
+              </div>
+              
+              {/* Note Input */}
+              <div className="flex gap-2 mb-2">
+                <Input
+                  value={currentNote}
+                  onChange={(e) => setCurrentNote(e.target.value)}
+                  onKeyPress={handleNoteKeyPress}
+                  placeholder={editingNoteId ? "Edit note..." : "Add a note..."}
+                  className="flex-1 h-6 text-xs border-indigo-200 focus:border-indigo-400"
+                />
+                {editingNoteId ? (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={saveEditedNote}
+                      className="h-6 px-2 text-xs border-green-200 hover:bg-green-50 text-green-700"
+                    >
+                      ✓
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelEditing}
+                      className="h-6 px-2 text-xs border-red-200 hover:bg-red-50 text-red-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={addNote}
+                    disabled={!currentNote.trim()}
+                    className="h-6 px-2 text-xs border-indigo-200 hover:bg-indigo-50 text-indigo-700"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+              
+              {/* Notes List */}
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {notes.length === 0 ? (
+                  <div className="text-xs text-gray-500 text-center py-2">
+                    No notes yet. Add one above!
+                  </div>
+                ) : (
+                  notes.map((note) => (
+                    <div key={note.id} className="bg-indigo-50 rounded p-2 border border-indigo-100">
+                      <div className="text-xs text-gray-700 break-words">{note.content}</div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-xs text-gray-500">
+                          {note.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => startEditingNote(note.id, note.content)}
+                            className="text-indigo-600 hover:text-indigo-800 text-xs"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => deleteNote(note.id)}
+                            className="text-red-500 hover:text-red-700 text-xs"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
           
           <div className="relative z-10 flex items-center justify-between px-8">
             {/* Left side decorative image */}
@@ -316,7 +465,7 @@ const ChatInterface = () => {
             <div className="flex items-center gap-4">
               <Bot className="w-6 h-6 text-purple-200" />
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent">
-                Step by Step
+                thynk
               </h1>
               <div className="p-2 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 shadow-lg">
                 <Sparkles className="w-5 h-5 text-white" />
