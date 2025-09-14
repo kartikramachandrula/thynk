@@ -53,6 +53,59 @@ class ExampleMentraOSApp extends AppServer {
     this.isStreamingPhotos.set(userId, false);
     this.nextPhotoTime.set(userId, Date.now());
 
+    // Welcome message for voice commands
+    await session.audio.speak("Rizzoids OCR ready. Say 'take photo' to capture, or 'start streaming' to begin continuous mode.");
+
+    // Listen for voice commands via transcription
+    const unsubscribe = session.events.onTranscription(async (data) => {
+      // Only process final transcriptions to avoid partial commands
+      if (!data.isFinal) return;
+
+      const command = data.text.toLowerCase().trim();
+      this.logger.info(`Voice command received: "${command}"`);
+
+      if (command.includes("take photo") || command.includes("capture")) {
+        // Voice command to take a single photo
+        session.layouts.showTextWall("Voice command: Taking photo...", {durationMs: 3000});
+        try {
+          const photo = await session.camera.requestPhoto();
+          this.cachePhoto(photo, userId);
+          await session.audio.speak("Photo captured and processing OCR.");
+        } catch (error) {
+          this.logger.error(`Error taking photo via voice: ${error}`);
+          await session.audio.speak("Sorry, I couldn't take the photo.");
+        }
+      } else if (command.includes("give hint") || command.includes("hint") || command.includes("help")) {
+        session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
+        try {
+          // Call the give_hint endpoint with the user's command
+          const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/give_hint`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              learned: command
+            })
+          });
+
+          if (response.ok) {
+            const hintText = await response.text();
+            // Speak the hint response from the backend
+            await session.audio.speak(`Here's a hint: ${hintText}`);
+          } else {
+            await session.audio.speak("Sorry, I couldn't generate a hint right now.");
+          }
+        } catch (error) {
+          this.logger.error(`Error getting hint: ${error}`);
+          await session.audio.speak("Sorry, there was an error getting your hint.");
+        }
+      }
+    });
+
+    // Clean up transcription listener when session ends
+    this.addCleanupHandler(unsubscribe);
+
     // this gets called whenever a user presses a button
     session.events.onButtonPress(async (button) => {
       this.logger.info(`Button pressed: ${button.buttonId}, type: ${button.pressType}`);
