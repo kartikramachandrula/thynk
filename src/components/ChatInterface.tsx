@@ -42,13 +42,14 @@ const ChatInterface = () => {
 
   const callBackendHint = async (mode: 'hint' | 'check', learned: string = '') => {
     try {
-      const response = await fetch('http://localhost:8000/give_hint', {
+      const response = await fetch('http://localhost:8000/give-hint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          learned: learned || inputValue || 'Current work context'
+          learned: learned || inputValue || 'Current work context',
+          question: learned || inputValue || ''
         })
       });
       
@@ -56,14 +57,14 @@ const ChatInterface = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // The endpoint returns markdown text directly
-      const hintText = await response.text();
-      return hintText || 'No response from server';
+      // The endpoint returns JSON with hint field
+      const result = await response.json();
+      return result.hint || 'No response from server';
     } catch (error) {
       console.error('Error calling backend:', error);
       return mode === 'hint' 
-        ? 'Unable to get hint at the moment. Please try again.'
-        : 'Unable to check work at the moment. Please try again.';
+        ? '💡 **Hint:** Unable to get hint at the moment. Please try again.'
+        : '🔍 **Check:** Unable to check work at the moment. Please try again.';
     }
   };
 
