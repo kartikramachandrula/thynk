@@ -18,7 +18,6 @@ from PIL import Image
 import numpy as np
 from dotenv import load_dotenv
 
-<<<<<<< HEAD
 # Import OCR models directly
 from ocr_models.base_ocr import OCRRequest, OCRResponse, SimpleOCRResponse
 from ocr_models.ocr_factory import OCRFactory
@@ -30,12 +29,8 @@ try:
 except ImportError:
     MODAL_AVAILABLE = False
 
-=======
-# Load environment variables
->>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
 load_dotenv()
 
-<<<<<<< HEAD
 # Create FastAPI app
 fastapi_app = FastAPI(title="Rizzoids Backend", version="1.0.0")
 
@@ -52,13 +47,6 @@ image = modal.Image.debian_slim(python_version="3.12").pip_install(
     "anthropic==0.25.0",
     "redis==5.0.1",
     "upstash-redis==0.15.0",
-=======
-# Initialize FastAPI app
-fastapi_app = FastAPI(
-    title="Rizzoids Smart Glasses API",
-    description="OCR and AI analysis for smart glasses",
-    version="1.0.0"
->>>>>>> ccde0e5a1eee18ee3990acf259c0cd5d33779d96
 )
 
 # Add CORS middleware
@@ -220,53 +208,6 @@ async def give_hint(request: Request):
         
         prompt = f"""You are a friendly math tutor. Based on the stored context and the student's current situation, provide a helpful hint for the next step in markdown format.
 
-<<<<<<< HEAD
-def get_ocr_model():
-    """Get or initialize OCR model (lazy loading)"""
-    global _ocr_model
-    if _ocr_model is None:
-        # Get available models and use the first available one
-        available_models = OCRFactory.get_available_models()
-        if not available_models:
-            raise HTTPException(
-                status_code=500,
-                detail="No OCR models are available. Please check your environment configuration."
-            )
-        
-        # Prefer Jury (ensemble), then Claude, then EasyOCR, then Google Vision
-        preferred_order = ["jury", "claude", "easyocr", "google_vision"]
-        selected_model = None
-        
-        for preferred in preferred_order:
-            if preferred in available_models:
-                selected_model = preferred
-                break
-        
-        # Fallback to first available if none of the preferred models are available
-        if selected_model is None:
-            selected_model = available_models[0]
-        
-        print(f"Using OCR model: {selected_model}")
-        _ocr_model = OCRFactory.create_ocr_model(selected_model)
-    return _ocr_model
-
-# OCR endpoints
-@fastapi_app.post("/ocr", response_model=SimpleOCRResponse)
-async def perform_ocr(request: OCRRequest):
-    """Extract text from image using OCR"""
-    ocr_model = get_ocr_model()
-    result: OCRResponse = await ocr_model.extract_text_from_image(request.image_base64)
-    return SimpleOCRResponse(full_text=result.full_text, success=result.success)
-
-@fastapi_app.post("/analyze-photo", response_model=SimpleOCRResponse)
-async def analyze_photo(request: OCRRequest):
-    """Analyze photo from Mentra glasses and extract text using OCR"""
-    ocr_model = get_ocr_model()
-    print("Starting extraction", flush=True)
-    result: OCRResponse = await ocr_model.extract_text_from_image(request.image_base64)
-    print(result.full_text)
-    return SimpleOCRResponse(full_text=result.full_text, success=result.success)
-=======
 STORED CONTEXT:
 {stored_context}
 
@@ -350,7 +291,6 @@ async def analyze_text(request: AnalysisRequest):
         client = get_claude_client()
         
         prompt = f"""You are an AI assistant for smart glasses. Analyze the following text and provide helpful insights.
->>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
 
 Text to analyze: {request.text}
 Context: {request.context or 'No additional context'}
@@ -360,39 +300,7 @@ Please provide:
 2. 3-5 actionable suggestions or insights
 3. Your confidence level (0-1)
 
-<<<<<<< HEAD
-# Modal deployment setup (only if Modal is available)
-if MODAL_AVAILABLE:
-    # Create Modal app (use 'app' as the variable name for Modal CLI)
-    app = modal.App("rizzoids-backend-personal")
-    
-    # Define the image with FastAPI and EasyOCR
-    image = modal.Image.debian_slim(python_version="3.12").pip_install([
-        "fastapi==0.104.1",
-        "uvicorn[standard]==0.24.0",
-        "python-dotenv==1.0.0",
-        "pydantic==2.11.9",
-        "pillow==10.1.0",
-        "numpy",
-        "easyocr",
-        "google-cloud-vision",
-        "easyocr==1.7.0",
-        "cerebras-cloud-sdk==1.50.1",
-        "numpy"
-    ])
-    
-    # Modal deployment using the same FastAPI app
-    @app.function(
-        image=image,
-        memory=1024,
-        cpu=1.0
-    )
-    @modal.asgi_app(label="rizzoids-api")
-    def modal_fastapi_app():
-        return fastapi_app
-=======
 Format your response as JSON with 'analysis', 'suggestions' (array), and 'confidence' fields."""
->>>>>>> ccde0e5a1eee18ee3990acf259c0cd5d33779d96
 
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
