@@ -6,7 +6,7 @@ import json
 
 # IMPORTANT: Replace this with your actual Modal deployment URL
 # You can find this URL in the output when you run `modal deploy backend.main`
-BASE_URL = "https://melody-yu--rizzoids-tutor-bot-run-app.modal.run" 
+BASE_URL = "" 
 
 # --- Example Data ---
 
