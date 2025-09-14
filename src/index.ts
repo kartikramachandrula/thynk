@@ -123,7 +123,7 @@ class ExampleMentraOSApp extends AppServer {
 
       if (response.ok) {
         const ocrResult = await response.json();
-        this.logger.info(`OCR analysis completed for user ${userId}: ${ocrResult.text}`);
+        this.logger.info(`OCR analysis completed for user ${userId}: ${ocrResult.full_text}`);
         // You can store the OCR result or use it as needed
       } else {
         this.logger.error(`OCR analysis failed: ${response.statusText}`);

@@ -10,59 +10,15 @@
       padding: 0;
       background-color: #000;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       font-family: Arial, sans-serif;
     }
 
-    .main-container {
-      display: flex;
-      flex-direction: column;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    .hint-button {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      padding: 15px 25px;
-      font-size: 18px;
-      font-weight: bold;
-      border: none;
-      border-radius: 12px;
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
-      z-index: 100;
-    }
-
-    .hint-button:hover {
-      background-color: #0056b3;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
-    }
-
-    .hint-button:active {
-      transform: translateY(0);
-    }
-
-
-    .content-area {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-
     .photo-container {
-      max-width: 100%;
-      max-height: 100%;
+      max-width: 100vw;
+      max-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -73,26 +29,6 @@
       max-height: 100%;
       object-fit: contain;
       border-radius: 8px;
-    }
-
-    .text-display {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: clamp(2rem, 12vw, 10rem);
-      font-weight: bold;
-      text-align: center;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-      background-color: rgba(0, 0, 0, 0.7);
-      padding: clamp(20px, 6vw, 60px) clamp(30px, 8vw, 80px);
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-      max-width: 90%;
-      word-wrap: break-word;
-      z-index: 10;
-      line-height: 1.2;
     }
 
     .no-photo {
@@ -106,145 +42,54 @@
       text-align: center;
       font-size: 16px;
     }
-
-    @media (max-width: 768px) {
-      .text-display {
-        font-size: clamp(1.5rem, 8vw, 5rem);
-        padding: clamp(15px, 4vw, 40px) clamp(20px, 6vw, 50px);
-        max-width: 95%;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .text-display {
-        font-size: clamp(1.2rem, 7vw, 3.5rem);
-        padding: clamp(12px, 3vw, 30px) clamp(18px, 5vw, 40px);
-        max-width: 98%;
-      }
-    }
-
-    @media (min-width: 1200px) {
-      .text-display {
-        font-size: clamp(4rem, 10vw, 12rem);
-        padding: clamp(40px, 5vw, 80px) clamp(60px, 8vw, 120px);
-      }
-    }
   </style>
 </head>
 <body>
-  <div class="main-container">
-    <div class="content-area">
-      <div class="photo-container">
-        <div id="content" class="loading">Loading latest photo...</div>
-      </div>
-      <div id="textOverlay" class="text-display" style="display: none;"></div>
-    </div>
-    <button class="hint-button" onclick="getHint()">Give me a hint</button>
+  <div class="photo-container">
+    <div id="content" class="loading">Loading latest photo...</div>
   </div>
 
   <script>
     let currentRequestId = null;
-    let currentDisplayText = null;
-    
-    let displayText = "Hi my friend!";
-
 
     /**
-     * Display the hardcoded text
+     * Check for new photos and update display
      */
-    function showHardcodedText() {
-      const textOverlay = document.getElementById('textOverlay');
-      textOverlay.textContent = displayText;
-      textOverlay.style.display = 'block';
-    }
-
-    /**
-     * Get hint from API and update text display
-     */
-    async function getHint() {
+    async function checkForNewPhoto() {
       try {
-        const response = await fetch('/api/give_hint', {
-          method: 'GET'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to get hint');
-        }
-
-        const hintData = await response.json();
-        
-        // Update the displayText variable
-        displayText = hintData.hint;
-        
-        // Update the display with the hint
-        const textOverlay = document.getElementById('textOverlay');
-        textOverlay.textContent = displayText;
-        textOverlay.style.display = 'block';
-        
-        // Update current display text
-        currentDisplayText = displayText;
-        
-      } catch (error) {
-        console.error('Error getting hint:', error);
-        // Show error message on screen
-        const textOverlay = document.getElementById('textOverlay');
-        textOverlay.textContent = 'Error getting hint. Please try again.';
-        textOverlay.style.display = 'block';
-      }
-    }
-
-    /**
-     * Check for new display text from API (optional override)
-     */
-    async function checkForDisplayText() {
-      try {
-        const response = await fetch('/api/display-text');
+        const response = await fetch('/api/latest-photo');
 
         if (response.status === 404) {
-          // Keep showing hardcoded text, don't hide it
+          // No photo available
+          document.getElementById('content').innerHTML =
+            '<div class="no-photo">No photos taken yet. Take a photo using your Mentra Live by pressing the right button!</div>';
           return;
         }
 
         if (!response.ok) {
-          // Keep showing current text on error
-          return;
+          throw new Error('Failed to fetch photo info');
         }
 
-        const textData = await response.json();
+        const photoInfo = await response.json();
 
-        // Only update if we get valid new text from API
-        if (textData.text && textData.text !== currentDisplayText) {
-          currentDisplayText = textData.text;
+        // Check if this is a new photo
+        if (photoInfo.requestId !== currentRequestId) {
+          currentRequestId = photoInfo.requestId;
 
-          // Update the display with new text from API
-          const textOverlay = document.getElementById('textOverlay');
-          textOverlay.textContent = textData.text;
-          textOverlay.style.display = 'block';
+          // Update the display with new photo
+          document.getElementById('content').innerHTML =
+            '<img class="photo" src="/api/photo/' + photoInfo.requestId + '" alt="Latest Photo" />';
         }
       } catch (error) {
-        // Keep showing current text on any error
-        console.error('Error checking for display text:', error);
+        console.error('Error checking for new photo:', error);
+        document.getElementById('content').innerHTML =
+          '<div class="no-photo">Error loading photo. Please refresh the page.</div>';
       }
     }
 
-    /**
-     * Override photo display - no photos will be shown
-     */
-    function overridePhotoDisplay() {
-      // Clear any photo content and hide the photo container
-      document.getElementById('content').innerHTML = '';
-      document.getElementById('content').style.display = 'none';
-    }
-
-    // Override photo display - no photos will be shown
-    overridePhotoDisplay();
-
-    // Show hardcoded text immediately and keep it persistent
-    showHardcodedText();
-
-    // Optional: Check for API text updates every 5 seconds (less frequent to avoid 404 spam)
-    // Only updates if API provides new text, never hides existing text
-    setInterval(checkForDisplayText, 5000);
+    // Check for new photos every 500ms (twice per second)
+    checkForNewPhoto(); // Initial check
+    setInterval(checkForNewPhoto, 500);
   </script>
 </body>
 </html>
