@@ -1,7 +1,7 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-dotenv==1.0.0
-pydantic
+pydantic==2.11.9
 pillow==10.1.0
 numpy
 modal
