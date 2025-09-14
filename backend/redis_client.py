@@ -78,10 +78,9 @@ class ThynkRedisClient:
             
             # Get most recent context IDs
             recent_ids = await self.client.zrevrange(sorted_key, 0, max_entries - 1)
-            
-            print("No recent data")
 
             if not recent_ids:
+                print("no recent data")
                 return []
             
             # Retrieve context data

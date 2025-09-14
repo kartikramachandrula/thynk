@@ -5,6 +5,17 @@ import { Send, HelpCircle, CheckCircle, BookOpen, Sparkles, Bot, Upload, Papercl
 // import { useToast } from '@/hooks/use-toast';
 import brainIllustration from '@/assets/brain-illustration.jpg';
 import studyDesk from '@/assets/study-desk.jpg';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+// Minimal typing for MathJax on the window object
+declare global {
+  interface Window {
+    MathJax?: {
+      typesetPromise?: (elements?: Element[] | null) => Promise<void>;
+    };
+  }
+}
 
 interface Message {
   id: string;
@@ -19,6 +30,7 @@ const ChatInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // const { toast } = useToast();
 
@@ -28,6 +40,13 @@ const ChatInterface = () => {
 
   useEffect(() => {
     scrollToBottom();
+    // Trigger MathJax typesetting on new messages if available
+    const container = messagesContainerRef.current;
+    if (container && window.MathJax?.typesetPromise) {
+      window.MathJax.typesetPromise([container]).catch((err) => {
+        console.error('MathJax typeset error:', err);
+      });
+    }
   }, [messages]);
 
   const addMessage = (content: string, type: 'user' | 'ai') => {
@@ -200,7 +219,7 @@ const ChatInterface = () => {
               </div>
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto p-10 space-y-8 relative">
+            <div ref={messagesContainerRef} className="max-w-4xl mx-auto p-10 space-y-8 relative">
               {/* Left side decorative images */}
               <div className="fixed left-4 top-[20%] transform -translate-y-1/2 opacity-20 z-0">
                 <img 
@@ -278,12 +297,16 @@ const ChatInterface = () => {
               {messages.map((message) => (
                 <div key={message.id} className="space-y-3 relative z-10">
                   {message.type === 'user' ? (
-                    <div className="font-bold text-gray-900 text-xl leading-relaxed tracking-wide">
-                      {message.content}
+                    <div className="prose prose-indigo max-w-none font-normal text-gray-900 text-xl leading-relaxed tracking-wide">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
                     </div>
                   ) : (
-                    <div className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">
-                      {message.content}
+                    <div className="prose prose-indigo max-w-none text-gray-700 text-lg leading-relaxed">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
                     </div>
                   )}
                 </div>
