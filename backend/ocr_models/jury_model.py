@@ -9,7 +9,7 @@ try:
 except ImportError:
     _ANTHROPIC_OK = False
 
-from .base_ocr import BaseOCR, OCRResponse, TextPhrase
+from .base_ocr import BaseOCR, SimpleOCRResponse, TextPhrase
 from .claude_model import ClaudeModel
 from .cerebras_model import CerebrasModel
 
@@ -51,22 +51,22 @@ class JuryModel(BaseOCR):
         """No concrete client to initialize for the orchestrator."""
         return None
 
-    async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
+    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
         """Run multiple OCR backends and return up to 4 outputs as phrases."""
         texts: list[str] = []
 
         # 1) Run Claude (if available)
-        # try:
-        claude = ClaudeModel()
-        if claude.is_available():
-            res = await claude.extract_text_from_image(image_base64)
-            if res and res.full_text:
-                candidate = res.full_text.strip()
-                print("Jury candidate [Claude]:", candidate)
-                texts.append(candidate)
-        # except Exception as e:
-        #     # Log and continue with others
-        #     print(f"Jury: Claude failed: {e}")
+        try:
+            claude = ClaudeModel()
+            if claude.is_available():
+                res = await claude.extract_text_from_image(image_base64)
+                if res and res.full_text:
+                    candidate = res.full_text.strip()
+                    print("Jury candidate [Claude]:", candidate)
+                    texts.append(candidate)
+        except Exception as e:
+            # Log and continue with others
+            print(f"Jury: Claude failed: {e}")
 
         # 2) Run Cerebras variants (if available)
         cerebras_variants = [
@@ -138,11 +138,7 @@ class JuryModel(BaseOCR):
         # Log final aggregation result
         print("Jury aggregated text:", aggregated_text)
 
-        # Return only the aggregated text as the final result
-        phrase = TextPhrase(text=aggregated_text, confidence=0.9)
-        return OCRResponse(
-            phrases=[phrase],
+        return SimpleOCRResponse(
             full_text=aggregated_text,
-            average_confidence=phrase.confidence,
             success=True,
         )

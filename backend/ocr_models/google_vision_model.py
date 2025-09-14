@@ -3,7 +3,7 @@ import io
 from PIL import Image
 from fastapi import HTTPException
 
-from .base_ocr import BaseOCR, OCRResponse, TextPhrase
+from .base_ocr import BaseOCR, OCRResponse, SimpleOCRResponse, TextPhrase
 
 # Google Cloud Vision imports
 try:
@@ -39,7 +39,7 @@ class GoogleVisionModel(BaseOCR):
             self._vision_client = vision.ImageAnnotatorClient()
         return self._vision_client
     
-    async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
+    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
         """Extract text from base64 encoded image using Google Cloud Vision"""
         
         try:
@@ -88,10 +88,8 @@ class GoogleVisionModel(BaseOCR):
             # Create phrases list
             phrases = [TextPhrase(text=full_detected_text, confidence=confidence)] if detected_texts else []
             
-            return OCRResponse(
-                phrases=phrases,
+            return SimpleOCRResponse(
                 full_text=full_text,
-                average_confidence=avg_confidence,
                 success=True
             )
             

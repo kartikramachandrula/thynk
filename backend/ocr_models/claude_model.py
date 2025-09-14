@@ -7,7 +7,7 @@ import json
 from typing import List, Dict, Any
 from fastapi import HTTPException
 
-from .base_ocr import BaseOCR, OCRResponse, TextPhrase
+from .base_ocr import BaseOCR, SimpleOCRResponse, TextPhrase
 
 # Claude API imports
 try:
@@ -43,7 +43,7 @@ class ClaudeModel(BaseOCR):
             self._claude_client = anthropic.Anthropic(api_key=claude_api_key)
         return self._claude_client
     
-    async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
+    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
         """Extract text from base64 encoded image using Claude. Returns plain text only."""
 
         try:
@@ -101,10 +101,8 @@ class ClaudeModel(BaseOCR):
                     response_text_parts.append(block.text)
             full_text = "\n".join([p for p in response_text_parts if p]).strip()
 
-            return OCRResponse(
-                phrases=[],
+            return SimpleOCRResponse(
                 full_text=full_text,
-                average_confidence=0.0,
                 success=True,
             )
 
