@@ -17,10 +17,16 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from PIL import Image
 import numpy as np
+from ocr_models.ocr_factory import OCRFactory
 
-# Import Thynk system components
-from .thynk_functions import is_different, context_compression, get_context, give_hint
-from .redis_client import redis_client
+# Import Thynk system components (support running as package or as script)
+# try:
+from thynk_functions import is_different, context_compression, get_context, give_hint
+from redis_client import redis_client
+# except ImportError:
+#     # Fallback for when running this file directly (e.g., `python backend/main.py`)
+#     from thynk_functions import is_different, context_compression, get_context, give_hint
+#     from redis_client import redis_client
 
 # EasyOCR imports
 # try:
@@ -92,93 +98,58 @@ class ContextStatusResponse(BaseModel):
 # Initialize EasyOCR reader (lazy loading)
 _ocr_reader = None
 
-def get_ocr_reader():
-    """Get or initialize EasyOCR reader"""
-    global _ocr_reader
-    if _ocr_reader is None:
-        if not EASYOCR_AVAILABLE:
+@fastapi_app.get("/ocr/models")
+async def get_available_ocr_models():
+    """Get list of available OCR models"""
+    available_models = OCRFactory.get_available_models()
+    return {"available_models": available_models}
+
+# Initialize OCR model using factory
+_ocr_model = None
+
+def get_ocr_model():
+    """Get or initialize OCR model (lazy loading)"""
+    global _ocr_model
+    if _ocr_model is None:
+        # Get available models and use the first available one
+        available_models = OCRFactory.get_available_models()
+        if not available_models:
             raise HTTPException(
-                status_code=500, 
-                detail="EasyOCR not available. Please install easyocr."
+                status_code=500,
+                detail="No OCR models are available. Please check your environment configuration."
             )
-        # Initialize with English and common languages
-        _ocr_reader = easyocr.Reader(['en'])
-    return _ocr_reader
+        
+        # Prefer Claude, then EasyOCR, then Google Vision
+        preferred_order = ["jury","claude", "easyocr", "google_vision"]
+        selected_model = None
+        
+        for preferred in preferred_order:
+            if preferred in available_models:
+                selected_model = preferred
+                break
+        
+        # Fallback to first available if none of the preferred models are available
+        if selected_model is None:
+            selected_model = available_models[0]
+        
+        print(f"Using OCR model: {selected_model}")
+        _ocr_model = OCRFactory.create_ocr_model(selected_model)
+    return _ocr_model
 
-# OCR Service using EasyOCR
-async def extract_text_from_image(image_base64: str) -> OCRResponse:
-    """Extract text from base64 encoded image using EasyOCR"""
-    
-    try:
-        # Decode base64 image
-        image_data = base64.b64decode(image_base64)
-
-        # Convert to PIL Image
-        pil_image = Image.open(io.BytesIO(image_data))
-
-        # Convert PIL image to numpy array for EasyOCR
-        image_array = np.array(pil_image)
-
-        # Get OCR reader
-        reader = get_ocr_reader()
-
-        # Perform text detection
-        results = reader.readtext(image_array)
-
-        # Extract text and calculate average confidence
-        detected_texts = []
-        confidences = []
-
-        for (bbox, text, confidence) in results:
-            detected_texts.append(text)
-            confidences.append(confidence)
-
-        # Combine all detected text
-        full_text = ' '.join(detected_texts) if detected_texts else ""
-
-        # Calculate average confidence
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-
-        return OCRResponse(
-            text=full_text,
-            confidence=avg_confidence,
-            success=True
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"OCR processing failed: {str(e)}"
-        )
-
+# OCR endpoints
 @fastapi_app.post("/ocr", response_model=OCRResponse)
 async def perform_ocr(request: OCRRequest):
     """Extract text from image using OCR"""
-    return await extract_text_from_image(request.image_base64)
+    ocr_model = get_ocr_model()
+    return await ocr_model.extract_text_from_image(request.image_base64)
 
 @fastapi_app.post("/analyze-photo", response_model=OCRResponse)
 async def analyze_photo(request: OCRRequest):
-    """Analyze photo from Mentra glasses and extract text using OCR with Thynk integration"""
-    # Perform OCR
-    ocr_result = await extract_text_from_image(request.image_base64)
-    
-    # If OCR was successful, process with Thynk system
-    if ocr_result.success and ocr_result.text.strip():
-        try:
-            # Check if content is different enough to process
-            content_data = {"text": ocr_result.text}
-            different_result = is_different(content_data)
-            
-            # If content is different, compress and store it
-            if different_result.get("text"):
-                await context_compression(different_result)
-                print(f"Processed new learning content: {different_result['text'][:100]}...")
-                
-        except Exception as e:
-            print(f"Error processing with Thynk system: {e}")
-            # Continue with OCR result even if Thynk processing fails
-    
-    return ocr_result
+    """Analyze photo from Mentra glasses and extract text using OCR"""
+    print("Analyzing photo...")
+    ocr_model = get_ocr_model()
+    result = await ocr_model.extract_text_from_image(request.image_base64)
+    return result
 
 @fastapi_app.get("/context_status")
 async def context_status():

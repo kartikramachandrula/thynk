@@ -26,7 +26,7 @@ class BaseOCR(ABC):
     """Abstract base class for OCR implementations"""
     
     @abstractmethod
-    async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
+    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
         """Extract text from base64 encoded image"""
         pass
     
