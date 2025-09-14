@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Click Hint Chat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f8f9fa;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Chat Header */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid #e5e7eb;
+      background-color: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-left: 8px;
+    }
+
+    .header-icon {
+      width: 24px;
+      height: 24px;
+      color: #3b82f6;
+    }
+
+    /* Chat Messages Area */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #6b7280;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      opacity: 0.5;
+      margin-bottom: 16px;
+    }
+
+    /* Message Bubbles */
+    .message {
+      display: flex;
+      width: 100%;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.assistant {
+      justify-content: flex-start;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #3b82f6;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .message-bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      position: relative;
+      max-width: 65%;
+    }
+
+    .message.user .message-bubble {
+      background-color: #3b82f6;
+      color: white;
+    }
+
+    .message.assistant .message-bubble {
+      background-color: white;
+      color: #1f2937;
+      border: 1px solid #e5e7eb;
+    }
+
+    .message-text {
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .thinking-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #6b7280;
+      font-style: italic;
+      font-size: 13px;
+    }
+
+    .thinking-dots {
+      display: flex;
+      gap: 3px;
+    }
+
+    .thinking-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #6b7280;
+      border-radius: 50%;
+      animation: thinking-bounce 1.4s infinite ease-in-out;
+    }
+
+    .thinking-dot:nth-child(2) {
+      animation-delay: 0.1s;
+    }
+
+    .thinking-dot:nth-child(3) {
+      animation-delay: 0.2s;
+    }
+
+    @keyframes thinking-bounce {
+      0%, 60%, 100% {
+        transform: translateY(0);
+      }
+      30% {
+        transform: translateY(-4px);
+      }
+    }
+
+    .formatted-content {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      background-color: rgba(0, 0, 0, 0.05);
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 4px solid #3b82f6;
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .message-time {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #6b7280;
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+      }
+      30% {
+        transform: translateY(-10px);
+      }
+    }
+
+    /* Compose Bar */
+    .compose-bar {
+      border-top: 1px solid #e5e7eb;
+      background-color: white;
+      padding: 16px;
+    }
+
+    .compose-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .hint-button {
+      padding: 10px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background-color: white;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .hint-button:hover {
+      background-color: #f9fafb;
+      border-color: #9ca3af;
+    }
+
+    .hint-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .hint-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .message-input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .message-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .send-button {
+      padding: 10px 16px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .send-button:hover:not(:disabled) {
+      background-color: #2563eb;
+    }
+
+    .send-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .send-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .chat-messages {
+        padding: 12px 16px;
+      }
+      
+      .message-bubble {
+        max-width: 75%;
+      }
+      
+      .compose-container {
+        gap: 6px;
+      }
+      
+      .hint-button, .send-button {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Chat Header -->
+  <header class="chat-header">
+    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+    </svg>
+    <h1>Click Hint Chat</h1>
+  </header>
+
+  <!-- Chat Messages Area -->
+  <div class="chat-messages" id="chatMessages">
+    <div class="empty-state" id="emptyState">
+      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+      </svg>
+      <p>Click "Click Hint" to get started, or type a message below.</p>
+    </div>
+  </div>
+
+  <!-- Compose Bar -->
+  <div class="compose-bar">
+    <div class="compose-container">
+      <!-- Click Hint Button -->
+      <button class="hint-button" id="hintButton" onclick="handleClickHint()">
+        <svg class="hint-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+        </svg>
+        Click Hint
+      </button>
+
+      <!-- Message Input -->
+      <input 
+        type="text" 
+        class="message-input" 
+        id="messageInput" 
+        placeholder="Ask anything..." 
+        onkeypress="handleKeyPress(event)"
+      />
+
+      <!-- Send Button -->
+      <button class="send-button" id="sendButton" onclick="handleSendMessage()">
+        <svg class="send-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let messages = [];
+    let isLoading = false;
+
+    // DOM elements
+    const chatMessages = document.getElementById('chatMessages');
+    const emptyState = document.getElementById('emptyState');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const hintButton = document.getElementById('hintButton');
+
+    // Add message to chat
+    function addMessage(role, text) {
+      const message = {
+        id: Date.now().toString(),
+        role: role,
+        text: text,
+        timestamp: new Date()
+      };
+      
+      messages.push(message);
+      renderMessages();
+      scrollToBottom();
+    }
+
+    // Render all messages
+    function renderMessages() {
+      // Hide empty state if we have messages
+      if (messages.length > 0) {
+        emptyState.style.display = 'none';
+      }
+
+      // Clear existing messages (except empty state)
+      const existingMessages = chatMessages.querySelectorAll('.message, .typing-indicator');
+      existingMessages.forEach(msg => msg.remove());
+
+      // Render each message
+      messages.forEach(message => {
+        const messageEl = renderMessage(message);
+        chatMessages.appendChild(messageEl);
+      });
+
+      // Add typing indicator if loading
+      if (isLoading) {
+        const typingEl = createTypingIndicator();
+        chatMessages.appendChild(typingEl);
+      }
+    }
+
+    function renderMessage(message) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${message.role}`;
+      
+      // Create avatar
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = message.role === 'user' ? 'U' : 'AI';
+      
+      // Create message bubble
+      const messageBubble = document.createElement('div');
+      messageBubble.className = 'message-bubble';
+      
+      if (message.text === 'THINKING_INDICATOR') {
+        const thinkingDiv = document.createElement('div');
+        thinkingDiv.className = 'thinking-indicator';
+        
+        const dotsDiv = document.createElement('div');
+        dotsDiv.className = 'thinking-dots';
+        
+        for (let i = 0; i < 3; i++) {
+          const dot = document.createElement('div');
+          dot.className = 'thinking-dot';
+          dotsDiv.appendChild(dot);
+        }
+        
+        const textSpan = document.createElement('span');
+        textSpan.textContent = 'Thinking...';
+        
+        thinkingDiv.appendChild(dotsDiv);
+        thinkingDiv.appendChild(textSpan);
+        messageBubble.appendChild(thinkingDiv);
+      } else {
+        const messageText = document.createElement('div');
+        messageText.className = 'message-text';
+        
+        // Check if message contains formatted content (hints with markdown-style formatting)
+        if (message.text.includes('**') || message.text.includes('```') || message.text.includes('Here\'s your hint:')) {
+          messageText.innerHTML = formatHintText(message.text);
+        } else {
+          messageText.textContent = message.text;
+        }
+        
+        const messageTime = document.createElement('span');
+        messageTime.className = 'message-time';
+        messageTime.textContent = message.timestamp.toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        
+        messageBubble.appendChild(messageText);
+        messageBubble.appendChild(messageTime);
+      }
+      
+      messageDiv.appendChild(avatar);
+      messageDiv.appendChild(messageBubble);
+      return messageDiv;
+    }
+
+    // Format hint text with basic markdown-style formatting
+    function formatHintText(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/```([\s\S]*?)```/g, '<pre style="background: rgba(0,0,0,0.1); padding: 8px; border-radius: 4px; margin: 8px 0;"><code>$1</code></pre>')
+        .replace(/\n/g, '<br>');
+    }
+
+    // Create typing indicator
+    function createTypingIndicator() {
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'typing-indicator message assistant';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = 'AI';
+
+      const dotsContainer = document.createElement('div');
+      dotsContainer.className = 'typing-dots';
+
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'typing-dot';
+        dotsContainer.appendChild(dot);
+      }
+
+      typingDiv.appendChild(avatar);
+      typingDiv.appendChild(dotsContainer);
+
+      return typingDiv;
+    }
+
+    // Scroll to bottom
+    function scrollToBottom() {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Update UI state
+    function updateUIState() {
+      sendButton.disabled = !messageInput.value.trim() || isLoading;
+      hintButton.disabled = isLoading;
+      messageInput.disabled = isLoading;
+    }
+
+    // Handle send message
+    function handleSendMessage() {
+      const text = messageInput.value.trim();
+      if (!text || isLoading) return;
+
+      addMessage('user', text);
+      messageInput.value = '';
+      updateUIState();
+    }
+
+    // Handle key press
+    function handleKeyPress(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        handleSendMessage();
+      }
+    }
+
+    // Handle click hint
+    async function handleClickHint() {
+      if (isLoading) return;
+
+      setLoading(true);
+
+      try {
+        // Add user message
+        addMessage('user', 'give hint');
+
+        // Add thinking indicator
+        const thinkingId = Date.now().toString() + '_thinking';
+        const thinkingMessage = {
+          id: thinkingId,
+          role: 'assistant',
+          text: 'THINKING_INDICATOR',
+          timestamp: new Date()
+        };
+        messages.push(thinkingMessage);
+        renderMessages();
+
+        // Use a constant hint for now
+        const hintText = `Here's your hint:\n\n**Try looking for patterns in the data and break the problem down into smaller pieces.**`;
+
+        // Replace thinking indicator with actual hint (as user message on right side)
+        const messageIndex = messages.findIndex(msg => msg.id === thinkingId);
+        if (messageIndex !== -1) {
+          messages[messageIndex] = {
+            id: Date.now().toString(),
+            role: 'user',
+            text: hintText,
+            timestamp: new Date()
+          };
+        }
+        renderMessages();
+
+      } catch (error) {
+        console.error('Error getting hint:', error);
+        // Remove thinking indicator and add error message
+        messages = messages.filter(msg => msg.text !== 'THINKING_INDICATOR');
+        addMessage('assistant', 'Sorry, I could not get a hint right now. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Set loading state
+    function setLoading(loading) {
+      isLoading = loading;
+      renderMessages();
+      updateUIState();
+    }
+
+    // Initialize
+    messageInput.addEventListener('input', updateUIState);
+    updateUIState();
+  </script>
+</body>
+</html>
