@@ -1,60 +1,10 @@
-# MentraOS-Camera-Example-App
+# thynk
+Picture this: you're working on calculus homework at 2 AM, stuck on a derivative problem. You scramble through old Reddit threads, fumble with your phone to photograph each step for ChatGPT, and wait for responses that explain the solution in a completely different method than what your teacher taught. 
+We've all been there. That's what inspired thynk: a seamless, hands-free learning companion that teaches you using the exact methods your teachers did in class. No more breaking concentration to take photos, no more learning conflicting methods, no more friction between needing help and getting it. 
+Thynk about it until you understand (wh)y, and we'll be with you every step of the way.
 
-This is a simple example app which demonstrates how to use the MentraOS Camera API to take photos and display them in a webview.
+Thynk transforms the traditional learning experience using our smart glasses product. Unlike traditional AI tutors that require new photos for each step, thynk provides ongoing assistance throughout your entire problem-solving journey.
+Simply say "Help" or ask a specific question out loud. No need to stop writing, grab your phone, or break your concentration. Thynk provides hints and guidance that build on your current approach and the lectures it listened to with you in class, rather than replacing it with a different method.  
+Responses appear both as voice guidance through your glasses and visual aids on a connected device, accommodating different learning preferences. 
+Whether you're working through calculus derivatives, balancing chemical equations, or debugging code, thynk provides the perfect balance of guidance and independence: helping you learn without doing the work for you.
 
-You could also send the photo to an AI api, store it in a database or cloud storage, send it to Roboflow, or do other processing.
-
-### Install MentraOS on your phone
-
-MentraOS install links: [mentra.glass/install](https://mentra.glass/install)
-
-### (Easiest way to get started) Set up ngrok
-
-1. `brew install ngrok`
-
-2. Make an ngrok account
-
-3. [Use ngrok to make a static address/URL](https://dashboard.ngrok.com/)
-
-### Register your App with MentraOS
-
-1. Navigate to [console.mentra.glass](https://console.mentra.glass/)
-
-2. Click "Sign In", and log in with the same account you're using for MentraOS
-
-3. Click "Create App"
-
-4. Set a unique package name like `com.yourName.yourAppName`
-
-5. For "Public URL", enter your Ngrok's static URL
-
-6. In the edit app screen, add the microphone permission
-
-### Get your App running!
-
-1. [Install bun](https://bun.sh/docs/installation)
-
-2. Clone this repo locally: `git clone https://github.com/Mentra-Community/MentraOS-Camera-Example-App`
-
-3. cd into your repo, then type `bun install`
-
-5. Set up your environment variables:
-   * Create a `.env` file in the root directory by copying the example: `cp .env.example .env`
-   * Edit the `.env` file with your app details:
-     ```
-     PORT=3000
-     PACKAGE_NAME=com.yourName.yourAppName
-     MENTRAOS_API_KEY=your_api_key_from_console
-     ```
-   * Make sure the `PACKAGE_NAME` matches what you registered in the MentraOS Console
-   * Get your `API_KEY` from the MentraOS Developer Console
-
-6. Run your app with `bun run dev`
-
-7. To expose your app to the internet (and thus MentraOS) with ngrok, run: `ngrok http --url=<YOUR_NGROK_URL_HERE> 3000`
-    * `3000` is the port. It must match what is in the app config. For example, if you entered `port: 8080`, use `8080` for ngrok instead.
-
-
-### Next Steps
-
-Check out the full documentation at [docs.mentra.glass](.https://docs.mentra.glass/camera)
