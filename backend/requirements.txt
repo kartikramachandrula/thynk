@@ -8,3 +8,4 @@ modal
 easyocr
 google-cloud-vision
 anthropic==0.34.0
+cerebras-cloud-sdk==1.50.1
