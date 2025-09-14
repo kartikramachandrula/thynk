@@ -53,7 +53,14 @@ class ExampleMentraOSApp extends AppServer {
     this.nextPhotoTime.set(userId, Date.now());
 
     // Welcome message for voice commands
-    await session.audio.speak("Rizzoids OCR ready. Say 'start streaming' to begin, 'stop streaming' to end, or 'help' for hints.");
+    await session.audio.speak("Say 'start streaming' to begin, 'stop streaming' to end, or 'help' for hints.", {
+      voice_settings: {
+        stability: 0.7,
+        similarity_boost: 0.8,
+        style: 0.3,
+        speed: 0.9
+      }
+    });
 
     // Track processing state to prevent loops
     let isProcessingCommand = false;
@@ -89,13 +96,27 @@ class ExampleMentraOSApp extends AppServer {
           this.isStreamingPhotos.set(userId, true);
           this.logger.info(`Streaming mode started via voice for user ${userId}`);
           session.layouts.showTextWall("Streaming mode activated", {durationMs: 3000});
-          await session.audio.speak("Streaming mode activated. Photos will be taken automatically.");
+          await session.audio.speak("Streaming mode activated. Photos will be taken automatically.", {
+            voice_settings: {
+              stability: 0.7,
+              similarity_boost: 0.8,
+              style: 0.3,
+              speed: 0.9
+            }
+          });
         } else if (command.includes("stop streaming")) {
           // Voice command to stop streaming mode
           this.isStreamingPhotos.set(userId, false);
           this.logger.info(`Streaming mode stopped via voice for user ${userId}`);
           session.layouts.showTextWall("Streaming mode deactivated", {durationMs: 3000});
-          await session.audio.speak("Streaming mode deactivated.");
+          await session.audio.speak("Streaming mode deactivated.", {
+            voice_settings: {
+              stability: 0.7,
+              similarity_boost: 0.8,
+              style: 0.3,
+              speed: 0.9
+            }
+          });
         } else if (command.includes("give hint") || command.includes("hint") || command.includes("help")) {
           session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
           try {
@@ -116,13 +137,34 @@ class ExampleMentraOSApp extends AppServer {
               const hintText = result.hint || "Here's a hint to help you with your problem!";
               // Speak the hint response from the backend (strip markdown formatting for speech)
               const speechText = hintText.replace(/[*#`]/g, '').replace(/💡/g, '');
-              await session.audio.speak(speechText);
+              await session.audio.speak(speechText, {
+                voice_settings: {
+                  stability: 0.7,
+                  similarity_boost: 0.8,
+                  style: 0.3,
+                  speed: 0.9
+                }
+              });
             } else {
-              await session.audio.speak("Sorry, I couldn't generate a hint right now.");
+              await session.audio.speak("Sorry, I couldn't generate a hint right now.", {
+                voice_settings: {
+                  stability: 0.7,
+                  similarity_boost: 0.8,
+                  style: 0.3,
+                  speed: 0.9
+                }
+              });
             }
           } catch (error) {
             this.logger.error(`Error getting hint: ${error}`);
-            await session.audio.speak("Sorry, there was an error getting your hint.");
+            await session.audio.speak("Sorry, there was an error getting your hint.", {
+              voice_settings: {
+                stability: 0.7,
+                similarity_boost: 0.8,
+                style: 0.3,
+                speed: 0.9
+              }
+            });
           }
         }
       } finally {
