@@ -1,5 +1,4 @@
-import { AppServer, AppSession, ViewType, AuthenticatedRequest, PhotoData } from '@mentra/sdk';
-import { Request, Response } from 'express';
+import { AppServer, AppSession, AuthenticatedRequest, PhotoData } from '@mentra/sdk';
 import * as ejs from 'ejs';
 import * as path from 'path';
 import express from 'express';
@@ -54,7 +53,7 @@ class ExampleMentraOSApp extends AppServer {
     this.nextPhotoTime.set(userId, Date.now());
 
     // Welcome message for voice commands
-    await session.audio.speak("Rizzoids OCR ready. Say 'take photo' to capture or 'help' for give hint");
+    await session.audio.speak("Rizzoids OCR ready. Say 'start streaming' to begin, 'stop streaming' to end, or 'help' for hints.");
 
     // Track processing state to prevent loops
     let isProcessingCommand = false;
@@ -70,7 +69,7 @@ class ExampleMentraOSApp extends AppServer {
       if (!command || command.length < 3) return;
 
       // Filter out ambient noise and non-command speech
-      const validCommands = ["take photo", "capture", "give hint", "hint", "help"];
+      const validCommands = ["start streaming", "stop streaming", "give hint", "hint", "help"];
       const isValidCommand = validCommands.some(cmd => command.includes(cmd));
       
       // Only process if it contains actual command keywords
@@ -85,17 +84,18 @@ class ExampleMentraOSApp extends AppServer {
       isProcessingCommand = true;
 
       try {
-        if (command.includes("take photo") || command.includes("capture")) {
-          // Voice command to take a single photo
-          session.layouts.showTextWall("Voice command: Taking photo...", {durationMs: 3000});
-          try {
-            const photo = await session.camera.requestPhoto();
-            this.cachePhoto(photo, userId);
-            await session.audio.speak("Photo captured and processing OCR.");
-          } catch (error) {
-            this.logger.error(`Error taking photo via voice: ${error}`);
-            await session.audio.speak("Sorry, I couldn't take the photo.");
-          }
+        if (command.includes("start streaming")) {
+          // Voice command to start streaming mode
+          this.isStreamingPhotos.set(userId, true);
+          this.logger.info(`Streaming mode started via voice for user ${userId}`);
+          session.layouts.showTextWall("Streaming mode activated", {durationMs: 3000});
+          await session.audio.speak("Streaming mode activated. Photos will be taken automatically.");
+        } else if (command.includes("stop streaming")) {
+          // Voice command to stop streaming mode
+          this.isStreamingPhotos.set(userId, false);
+          this.logger.info(`Streaming mode stopped via voice for user ${userId}`);
+          session.layouts.showTextWall("Streaming mode deactivated", {durationMs: 3000});
+          await session.audio.speak("Streaming mode deactivated.");
         } else if (command.includes("give hint") || command.includes("hint") || command.includes("help")) {
           session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
           try {
