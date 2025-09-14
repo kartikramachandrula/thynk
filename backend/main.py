@@ -30,12 +30,14 @@ from .redis_client import redis_client
 from .audio_transcription import audio_transcriber
 
 # EasyOCR imports
-try:
-    import easyocr
-    EASYOCR_AVAILABLE = True
-except ImportError:
-    EASYOCR_AVAILABLE = False
-    print("EasyOCR not available. Install easyocr to use OCR.")
+# try:
+#     import easyocr
+#     EASYOCR_AVAILABLE = True
+# except ImportError:
+#     EASYOCR_AVAILABLE = False
+#     print("EasyOCR not available. Install easyocr to use OCR.")
+
+EASYOCR_AVAILABLE = False
 
 # Modal imports (only if Modal is available)
 try:
