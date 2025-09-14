@@ -21,30 +21,14 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-<<<<<<< HEAD
 # Create FastAPI app
 fastapi_app = FastAPI(title="Rizzoids Backend", version="1.0.0")
 
-# --- Modal Setup ---
-app = modal.App("rizzoids-backend")
-image = modal.Image.debian_slim(python_version="3.12").pip_install(
-    "fastapi==0.104.1",
-    "uvicorn[standard]==0.24.0",
-    "python-dotenv==1.0.0",
-    "modal==0.64.0",
-    "easyocr==1.7.0",
-    "pillow==10.1.0",
-    "pydantic==2.5.0",
-    "anthropic==0.25.0",
-    "redis==5.0.1",
-    "upstash-redis==0.15.0",
-=======
 # Initialize FastAPI app
 fastapi_app = FastAPI(
     title="Rizzoids Smart Glasses API",
     description="OCR and AI analysis for smart glasses",
     version="1.0.0"
->>>>>>> ccde0e5a1eee18ee3990acf259c0cd5d33779d96
 )
 
 # Add CORS middleware
@@ -298,39 +282,7 @@ Please provide:
 2. 3-5 actionable suggestions or insights
 3. Your confidence level (0-1)
 
-<<<<<<< HEAD
-# Modal deployment setup (only if Modal is available)
-if MODAL_AVAILABLE:
-    # Create Modal app (use 'app' as the variable name for Modal CLI)
-    app = modal.App("rizzoids-backend-personal")
-    
-    # Define the image with FastAPI and EasyOCR
-    image = modal.Image.debian_slim(python_version="3.12").pip_install([
-        "fastapi==0.104.1",
-        "uvicorn[standard]==0.24.0",
-        "python-dotenv==1.0.0",
-        "pydantic==2.11.9",
-        "pillow==10.1.0",
-        "numpy",
-        "easyocr",
-        "google-cloud-vision",
-        "easyocr==1.7.0",
-        "cerebras-cloud-sdk==1.50.1",
-        "numpy"
-    ])
-    
-    # Modal deployment using the same FastAPI app
-    @app.function(
-        image=image,
-        memory=1024,
-        cpu=1.0
-    )
-    @modal.asgi_app(label="rizzoids-api")
-    def modal_fastapi_app():
-        return fastapi_app
-=======
 Format your response as JSON with 'analysis', 'suggestions' (array), and 'confidence' fields."""
->>>>>>> ccde0e5a1eee18ee3990acf259c0cd5d33779d96
 
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
@@ -430,6 +382,7 @@ def modal_app():
 
 # Local development
 if __name__ == "__main__":
+    import uvicorn
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
