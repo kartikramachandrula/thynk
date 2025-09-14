@@ -75,16 +75,16 @@ class JuryModel(BaseOCR):
         for model_type in cerebras_variants:
             if len(texts) >= 4:
                 break
-            # try:
-            cerebras = CerebrasModel(model_type=model_type, max_tokens=self._cerebras_max_tokens)
-            if cerebras.is_available():
-                res = await cerebras.extract_text_from_image(image_base64)
-                if res and res.full_text:
-                    candidate = res.full_text.strip()
-                    print(f"Jury candidate [Cerebras::{model_type}]:", candidate)
-                    texts.append(candidate)
-            # except Exception as e:
-            #     print(f"Jury: Cerebras ({model_type}) failed: {e}")
+            try:
+                cerebras = CerebrasModel(model_type=model_type, max_tokens=self._cerebras_max_tokens)
+                if cerebras.is_available():
+                    res = await cerebras.extract_text_from_image(image_base64)
+                    if res and res.full_text:
+                        candidate = res.full_text.strip()
+                        print(f"Jury candidate [Cerebras::{model_type}]:", candidate)
+                        texts.append(candidate)
+            except Exception as e:
+                print(f"Jury: Cerebras ({model_type}) failed: {e}")
 
         # Keep only first 4 outputs
         texts = [t for t in texts if t]
