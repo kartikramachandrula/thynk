@@ -79,7 +79,7 @@ class ExampleMentraOSApp extends AppServer {
         session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
         try {
           // Call the give_hint endpoint with the user's command
-          const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/give_hint`, {
+          const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/give-hint`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
