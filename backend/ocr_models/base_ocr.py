@@ -16,6 +16,11 @@ class OCRResponse(BaseModel):
     average_confidence: float
     success: bool
 
+class SimpleOCRResponse(BaseModel):
+    """Simplified response exposed by API endpoints."""
+    full_text: str
+    success: bool
+
 # Abstract base class for OCR models
 class BaseOCR(ABC):
     """Abstract base class for OCR implementations"""

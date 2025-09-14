@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 # Import OCR models directly
-from ocr_models.base_ocr import OCRRequest, OCRResponse
+from ocr_models.base_ocr import OCRRequest, OCRResponse, SimpleOCRResponse
 from ocr_models.ocr_factory import OCRFactory
 
 # Modal imports (only if Modal is available)
@@ -58,8 +58,8 @@ def get_ocr_model():
                 detail="No OCR models are available. Please check your environment configuration."
             )
         
-        # Prefer Claude, then EasyOCR, then Google Vision
-        preferred_order = ["claude", "easyocr", "google_vision"]
+        # Prefer Jury (ensemble), then Claude, then EasyOCR, then Google Vision
+        preferred_order = ["jury", "claude", "easyocr", "google_vision"]
         selected_model = None
         
         for preferred in preferred_order:
@@ -76,19 +76,21 @@ def get_ocr_model():
     return _ocr_model
 
 # OCR endpoints
-@fastapi_app.post("/ocr", response_model=OCRResponse)
+@fastapi_app.post("/ocr", response_model=SimpleOCRResponse)
 async def perform_ocr(request: OCRRequest):
     """Extract text from image using OCR"""
     ocr_model = get_ocr_model()
-    return await ocr_model.extract_text_from_image(request.image_base64)
+    result: OCRResponse = await ocr_model.extract_text_from_image(request.image_base64)
+    return SimpleOCRResponse(full_text=result.full_text, success=result.success)
 
-@fastapi_app.post("/analyze-photo", response_model=OCRResponse)
+@fastapi_app.post("/analyze-photo", response_model=SimpleOCRResponse)
 async def analyze_photo(request: OCRRequest):
     """Analyze photo from Mentra glasses and extract text using OCR"""
     ocr_model = get_ocr_model()
-    result = await ocr_model.extract_text_from_image(request.image_base64)
-    print(result)
-    return result
+    print("Starting extraction", flush=True)
+    result: OCRResponse = await ocr_model.extract_text_from_image(request.image_base64)
+    print(result.full_text)
+    return SimpleOCRResponse(full_text=result.full_text, success=result.success)
 
 # Modal deployment setup (only if Modal is available)
 if MODAL_AVAILABLE:
