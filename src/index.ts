@@ -54,52 +54,79 @@ class ExampleMentraOSApp extends AppServer {
     this.nextPhotoTime.set(userId, Date.now());
 
     // Welcome message for voice commands
-    await session.audio.speak("Rizzoids OCR ready. Say 'take photo' to capture, or 'start streaming' to begin continuous mode.");
+    await session.audio.speak("Rizzoids OCR ready. Say 'take photo' to capture or 'help' for give hint");
+
+    // Track processing state to prevent loops
+    let isProcessingCommand = false;
 
     // Listen for voice commands via transcription
     const unsubscribe = session.events.onTranscription(async (data) => {
       // Only process final transcriptions to avoid partial commands
-      if (!data.isFinal) return;
+      if (!data.isFinal || isProcessingCommand) return;
 
       const command = data.text.toLowerCase().trim();
+      
+      // Skip empty commands or very short commands that might be noise
+      if (!command || command.length < 3) return;
+
+      // Filter out ambient noise and non-command speech
+      const validCommands = ["take photo", "capture", "give hint", "hint", "help"];
+      const isValidCommand = validCommands.some(cmd => command.includes(cmd));
+      
+      // Only process if it contains actual command keywords
+      if (!isValidCommand) {
+        this.logger.debug(`Ignoring non-command speech: "${command}"`);
+        return;
+      }
+
       this.logger.info(`Voice command received: "${command}"`);
+      
+      // Set processing flag to prevent concurrent processing
+      isProcessingCommand = true;
 
-      if (command.includes("take photo") || command.includes("capture")) {
-        // Voice command to take a single photo
-        session.layouts.showTextWall("Voice command: Taking photo...", {durationMs: 3000});
-        try {
-          const photo = await session.camera.requestPhoto();
-          this.cachePhoto(photo, userId);
-          await session.audio.speak("Photo captured and processing OCR.");
-        } catch (error) {
-          this.logger.error(`Error taking photo via voice: ${error}`);
-          await session.audio.speak("Sorry, I couldn't take the photo.");
-        }
-      } else if (command.includes("give hint") || command.includes("hint") || command.includes("help")) {
-        session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
-        try {
-          // Call the give_hint endpoint with the user's command
-          const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/give-hint`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              learned: command
-            })
-          });
-
-          if (response.ok) {
-            const hintText = await response.text();
-            // Speak the hint response from the backend
-            await session.audio.speak(`Here's a hint: ${hintText}`);
-          } else {
-            await session.audio.speak("Sorry, I couldn't generate a hint right now.");
+      try {
+        if (command.includes("take photo") || command.includes("capture")) {
+          // Voice command to take a single photo
+          session.layouts.showTextWall("Voice command: Taking photo...", {durationMs: 3000});
+          try {
+            const photo = await session.camera.requestPhoto();
+            this.cachePhoto(photo, userId);
+            await session.audio.speak("Photo captured and processing OCR.");
+          } catch (error) {
+            this.logger.error(`Error taking photo via voice: ${error}`);
+            await session.audio.speak("Sorry, I couldn't take the photo.");
           }
-        } catch (error) {
-          this.logger.error(`Error getting hint: ${error}`);
-          await session.audio.speak("Sorry, there was an error getting your hint.");
+        } else if (command.includes("give hint") || command.includes("hint") || command.includes("help")) {
+          session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
+          try {
+            // Call the give_hint endpoint with the user's command
+            const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/give-hint`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                learned: command
+              })
+            });
+
+            if (response.ok) {
+              const hintText = await response.text();
+              // Speak the hint response from the backend
+              await session.audio.speak(`Here's a hint: ${hintText}`);
+            } else {
+              await session.audio.speak("Sorry, I couldn't generate a hint right now.");
+            }
+          } catch (error) {
+            this.logger.error(`Error getting hint: ${error}`);
+            await session.audio.speak("Sorry, there was an error getting your hint.");
+          }
         }
+      } finally {
+        // Reset processing flag after a delay to prevent rapid re-triggering
+        setTimeout(() => {
+          isProcessingCommand = false;
+        }, 2000);
       }
     });
 
