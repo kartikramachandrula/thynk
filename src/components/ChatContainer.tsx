@@ -63,7 +63,7 @@ export const ChatContainer = () => {
 
   const handleClickHint = () => {
     // Add user message "give hint"
-    addMessage("give hint", true);
+    addMessage("Give Hint", true);
     
     // Simulate AI response with the constant hint
     setTimeout(() => {
