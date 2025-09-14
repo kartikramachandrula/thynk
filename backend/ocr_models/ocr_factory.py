@@ -4,6 +4,10 @@ from .google_vision_model import GoogleVisionModel
 from .claude_model import ClaudeModel
 from .cerebras_model import CerebrasModel
 from .jury_model import JuryModel
+<<<<<<< HEAD
+=======
+from .cerebras_model import CerebrasModel
+>>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 
 class OCRFactory:
     """Factory class to create OCR model instances"""
@@ -44,6 +48,16 @@ class OCRFactory:
         claude_model = ClaudeModel()
         if claude_model.is_available():
             models.append("claude")
+<<<<<<< HEAD
+=======
+
+        # Jury is available if any member is available
+        jury_model = JuryModel()
+        if jury_model.is_available():
+            # Put jury first as an aggregate choice
+            models = [m for m in models if m != "jury"]
+            models.insert(0, "jury")
+>>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         
         # Check Cerebras availability
         cerebras_model = CerebrasModel()

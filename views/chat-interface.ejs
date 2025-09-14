@@ -576,7 +576,17 @@
 
         // Call the FastAPI backend endpoint to get hint
         const backendUrl = 'http://localhost:8000'; // FastAPI backend URL
+<<<<<<< HEAD
         const response = await fetch(`${backendUrl}/give-hint`);
+=======
+        const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/give-hint`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: "give hint"
+        });
+>>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

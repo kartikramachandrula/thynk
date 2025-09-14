@@ -10,4 +10,39 @@ bun.lock
 # Logs
 npm-debug.log*
 yarn-debug.log*
+<<<<<<< HEAD
 yarn-error.log* 
+=======
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+>>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
