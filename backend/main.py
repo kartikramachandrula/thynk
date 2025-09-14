@@ -229,145 +229,57 @@ async def context_status():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# Initialize OCR model using factory
+_ocr_model = None
+
+def get_ocr_model():
+    """Get or initialize OCR model (lazy loading)"""
+    global _ocr_model
+    if _ocr_model is None:
+        # Get available models and use the first available one
+        available_models = OCRFactory.get_available_models()
+        if not available_models:
+            raise HTTPException(
+                status_code=500,
+                detail="No OCR models are available. Please check your environment configuration."
+            )
+        
+        # Prefer Jury (ensemble), then Claude, then EasyOCR, then others
+        preferred_order = ["jury", "claude", "cerebras", "easyocr", "google_vision"]
+        selected_model = None
+        
+        for preferred in preferred_order:
+            if preferred in available_models:
+                selected_model = preferred
+                break
+        
+        # Fallback to first available if none of the preferred models are available
+        if selected_model is None:
+            selected_model = available_models[0]
+        
+        print(f"Using OCR model: {selected_model}")
+        _ocr_model = OCRFactory.create_ocr_model(selected_model)
+    return _ocr_model
+
 @fastapi_app.post("/ocr", response_model=OCRResponse)
 async def perform_ocr(request: OCRRequest):
     """Extract text from image using OCR"""
-    start_time = time.time()
-    
-    try:
-        # Decode base64 image
-        image_data = base64.b64decode(request.image_base64)
-        
-        # Convert to PIL Image
-        pil_image = Image.open(io.BytesIO(image_data))
-        
-        # Convert to RGB if necessary
-        if pil_image.mode != 'RGB':
-            pil_image = pil_image.convert('RGB')
-        
-        # Convert PIL image to numpy array for EasyOCR
-        image_array = np.array(pil_image)
-        
-        # Get OCR reader
-        reader = get_ocr_reader()
-        
-        # Perform text detection
-        results = reader.readtext(image_array)
-        
-        # Extract text and calculate average confidence
-        detected_texts = []
-        confidences = []
-        
-        for (bbox, text, confidence) in results:
-            if confidence > 0.3:  # Filter low confidence results
-                detected_texts.append(text)
-                confidences.append(confidence)
-        
-        # Combine all detected text
-        full_text = ' '.join(detected_texts) if detected_texts else ""
-        
-        # Calculate average confidence
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-        
-        processing_time = time.time() - start_time
-        
-        return OCRResponse(
-            text=full_text,
-            confidence=avg_confidence,
-            success=True,
-            processing_time=processing_time
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"OCR processing failed: {str(e)}"
-        )
+    ocr_model = get_ocr_model()
+    return await ocr_model.extract_text_from_image(request.image_base64)
 
-@fastapi_app.post("/analyze", response_model=AnalysisResponse)
-async def analyze_text(request: AnalysisRequest):
-    """Analyze extracted text using Claude AI"""
-    try:
-        client = get_claude_client()
-        
-        prompt = f"""You are an AI assistant for smart glasses. Analyze the following text and provide helpful insights.
+@fastapi_app.post("/analyze-photo", response_model=OCRResponse)
+async def analyze_photo(request: OCRRequest):
+    """Analyze photo from Mentra glasses and extract text using OCR"""
+    ocr_model = get_ocr_model()
+    result = await ocr_model.extract_text_from_image(request.image_base64)
+    print(result)
+    return result
 
-Text to analyze: {request.text}
-Context: {request.context or 'No additional context'}
-
-Please provide:
-1. A brief analysis of what this text contains
-2. 3-5 actionable suggestions or insights
-3. Your confidence level (0-1)
-
-Format your response as JSON with 'analysis', 'suggestions' (array), and 'confidence' fields."""
-
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        
-        # Parse Claude's response
-        try:
-            result = json.loads(response.content[0].text)
-            return AnalysisResponse(
-                analysis=result.get("analysis", "Analysis completed"),
-                suggestions=result.get("suggestions", []),
-                confidence=result.get("confidence", 0.8),
-                success=True
-            )
-        except json.JSONDecodeError:
-            # Fallback if Claude doesn't return JSON
-            return AnalysisResponse(
-                analysis=response.content[0].text,
-                suggestions=["Review the extracted text", "Consider the context"],
-                confidence=0.7,
-                success=True
-            )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Analysis failed: {str(e)}"
-        )
-
-@fastapi_app.post("/process-glasses-image", response_model=Dict[str, Any])
-async def process_glasses_image(request: OCRRequest):
-    """Complete pipeline: OCR + Analysis for smart glasses"""
-    try:
-        # Step 1: Extract text
-        ocr_result = await perform_ocr(request)
-        
-        if not ocr_result.success or not ocr_result.text.strip():
-            return {
-                "success": False,
-                "message": "No text detected in image",
-                "ocr_result": ocr_result.dict()
-            }
-        
-        # Step 2: Store context if it's math-related
-        context_compression({"text": ocr_result.text})
-        
-        # Step 3: Analyze text
-        analysis_request = AnalysisRequest(
-            text=ocr_result.text,
-            context="Smart glasses capture"
-        )
-        analysis_result = await analyze_text(analysis_request)
-        
-        return {
-            "success": True,
-            "ocr_result": ocr_result.dict(),
-            "analysis_result": analysis_result.dict(),
-            "processing_pipeline": "OCR + Context Storage + AI Analysis completed"
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Pipeline processing failed: {str(e)}"
-        )
+@fastapi_app.get("/ocr/models")
+async def get_available_ocr_models():
+    """Get list of available OCR models"""
+    available_models = OCRFactory.get_available_models()
+    return {"available_models": available_models}
 
 # Modal deployment
 app = modal.App("rizzoids-smart-glasses")
