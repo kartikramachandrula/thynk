@@ -111,7 +111,6 @@ async def health_check():
 class OCRRequest(BaseModel):
     image_base64: str
 
-<<<<<<< HEAD
 class OCRResponse(BaseModel):
     text: str
     confidence: Optional[float] = None
@@ -183,27 +182,6 @@ async def perform_ocr(request: OCRRequest):
         print("/ocr endpoint HTTPException:", he.detail)
         print(traceback.format_exc())
         raise he
-=======
-@fastapi_app.post("/give_hint")
-async def give_hint(request: Request):
-    """Generate tutoring hints based on stored context and current situation"""
-    try:
-        data = await request.json()
-        user_question = data.get("question", "")
-        current_learned = user_question if user_question else "Student is requesting a hint"
-        stored_context = get_context()["context"]
-        
-        prompt = f"""You are a friendly math tutor. Based on the stored context and the student's current situation, provide a helpful hint for the next step in markdown format.
-
-STORED CONTEXT:
-{stored_context}
-
-CURRENT SITUATION:
-{current_learned}"""
-        messages = [{"role": "user", "content": prompt}]
-        hint_response = call_claude_api(messages)
-        return Response(hint_response, media_type="text/markdown; charset=utf-8")
->>>>>>> bc741106b9dd425cf76e16ad3fde24d99474a8d0
     except Exception as e:
         import traceback
         print("/ocr endpoint error:", e)
@@ -317,7 +295,6 @@ async def clear_context_endpoint():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-<<<<<<< HEAD
 # Modal deployment setup (only if Modal is available)
 if MODAL_AVAILABLE:
     # Create Modal app (use 'app' as the variable name for Modal CLI)
@@ -348,9 +325,6 @@ if MODAL_AVAILABLE:
     @modal.asgi_app(label="rizzoids-api")
     def modal_fastapi_app():
         return fastapi_app
-=======
-Format your response as JSON with 'analysis', 'suggestions' (array), and 'confidence' fields."""
->>>>>>> bc741106b9dd425cf76e16ad3fde24d99474a8d0
 
 # Local development server
 if __name__ == "__main__":

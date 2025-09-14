@@ -128,7 +128,7 @@ class ExampleMentraOSApp extends AppServer {
               },
               body: JSON.stringify({
                 learned: command,
-                question: command
+                question: command + "\n\n Ensure that your output consists mostly of words, as it will be read aloud."
               })
             });
 
