@@ -32,6 +32,14 @@ from .thynk_functions import (
 )
 from .redis_client import redis_client
 from .audio_transcription import audio_transcriber
+# Import Thynk system components (support running as package or as script)
+# try:
+from thynk_functions import is_different, context_compression, get_context, give_hint
+from redis_client import redis_client
+# except ImportError:
+#     # Fallback for when running this file directly (e.g., `python backend/main.py`)
+#     from thynk_functions import is_different, context_compression, get_context, give_hint
+#     from redis_client import redis_client
 
 # EasyOCR imports
 # try:
@@ -163,27 +171,25 @@ async def perform_ocr(request: OCRRequest):
 
 @fastapi_app.post("/analyze-photo", response_model=SimpleOCRResponse)
 async def analyze_photo(request: OCRRequest):
-    """Analyze photo from Mentra glasses and extract text using OCR with Thynk integration"""
-    # Perform OCR
-    ocr_result = await extract_text_from_image(request.image_base64)
-    
-    # If OCR was successful, process with Thynk system
-    if ocr_result.success and ocr_result.text.strip():
-        try:
-            # Check if content is different enough to process
-            content_data = {"text": ocr_result.text}
-            different_result = is_different(content_data)
-            
-            # If content is different, compress and store it
-            if different_result.get("text"):
-                await context_compression(different_result)
-                print(f"Processed new learning content: {different_result['text'][:100]}...")
-                
-        except Exception as e:
-            print(f"Error processing with Thynk system: {e}")
-            # Continue with OCR result even if Thynk processing fails
-    
-    return ocr_result
+    """Analyze photo from Mentra glasses and extract text using OCR"""
+    print("Analyzing photo...")
+    try:
+        ocr_model = get_ocr_model()
+        result = await ocr_model.extract_text_from_image(request.image_base64)
+        if result.success:
+            text = result.full_text
+            await thynk_client.store_context(text)
+        return result
+    except HTTPException as he:
+        import traceback
+        print("/analyze-photo endpoint HTTPException:", he.detail)
+        print(traceback.format_exc())
+        raise he
+    except Exception as e:
+        import traceback
+        print("/analyze-photo endpoint error:", e)
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 @fastapi_app.post("/process-audio", response_model=AudioResponse)
 async def process_audio(request: AudioRequest):
