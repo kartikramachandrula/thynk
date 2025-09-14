@@ -41,10 +41,16 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  const callBackendHint = async (mode: 'hint' | 'check') => {
+  const callBackendHint = async (mode: 'hint' | 'check', userQuestion?: string) => {
     try {
       const response = await fetch('http://localhost:3000/give_hint', {
-        method: 'GET',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: userQuestion || ""
+        }),
       });
       
       if (!response.ok) {
@@ -67,11 +73,11 @@ const ChatInterface = () => {
     let response = '';
     
     if (mode === 'hint' || mode === 'check') {
+      // For button clicks, don't pass user input (use default behavior)
       response = await callBackendHint(mode);
     } else {
-      // Simulate API delay for general responses
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-      response = `Regarding "${userInput}": I understand you're asking about this topic. Let me provide some guidance and insights that might help you.`;
+      // For text input, pass the user's question to the hint endpoint
+      response = await callBackendHint('hint', userInput);
     }
     
     addMessage(response, 'ai');

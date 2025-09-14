@@ -186,12 +186,13 @@ async def context_compression_endpoint(request: Request):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# TODO: change to post later
-@fastapi_app.get("/give_hint")
-async def give_hint():
+@fastapi_app.post("/give_hint")
+async def give_hint(request: Request):
     """Generate tutoring hints based on stored context and current situation"""
     try:
-        current_learned = "Student is requesting a hint"
+        data = await request.json()
+        user_question = data.get("question", "")
+        current_learned = user_question if user_question else "Student is requesting a hint"
         stored_context = get_context()["context"]
         
         prompt = f"""You are a friendly math tutor. Based on the stored context and the student's current situation, provide a helpful hint for the next step in markdown format.
