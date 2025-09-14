@@ -21,6 +21,17 @@ from ocr_models.ocr_factory import OCRFactory
 from ocr_models.base_ocr import SimpleOCRResponse
 from redis_client import ThynkRedisClient
 
+
+# Import Thynk system components
+from .thynk_functions import (
+    is_different, 
+    context_compression, 
+    get_context, 
+    give_hint,
+    lecture_context_compression
+)
+from .redis_client import redis_client
+from .audio_transcription import audio_transcriber
 # Import Thynk system components (support running as package or as script)
 # try:
 from thynk_functions import is_different, context_compression, get_context, give_hint
@@ -179,6 +190,67 @@ async def analyze_photo(request: OCRRequest):
         print("/analyze-photo endpoint error:", e)
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+@fastapi_app.post("/process-audio", response_model=AudioResponse)
+async def process_audio(request: AudioRequest):
+    """
+    Process audio input for lecture mode - transcribe and compress content
+    """
+    try:
+        # Transcribe audio using Whisper
+        transcription_result = audio_transcriber.transcribe_base64_audio(request.audio_base64)
+        
+        if not transcription_result["success"]:
+            return {
+                "success": False,
+                "error": f"Transcription failed: {transcription_result.get('error', 'Unknown error')}",
+                "transcript": "",
+                "session_id": request.session_id
+            }
+        
+        transcript = transcription_result["text"]
+        
+        # Skip processing if transcript is too short or empty
+        if len(transcript.strip()) < 10:
+            return {
+                "success": True,
+                "transcript": transcript,
+                "compressed_content": "Audio too short to process",
+                "session_id": request.session_id,
+                "compression_stats": {
+                    "original_length": len(transcript),
+                    "compressed_length": 0
+                }
+            }
+        
+        # Use lecture-specific context compression with session ID
+        session_id = request.session_id or "default"
+        compression_result = await lecture_context_compression(transcript, session_id)
+        
+        if compression_result["success"]:
+            return {
+                "success": True,
+                "transcript": transcript,
+                "compressed_content": compression_result["compressed_content"],
+                "session_id": session_id,
+                "compression_stats": {
+                    "original_length": compression_result["original_length"],
+                    "compressed_length": compression_result["compressed_length"]
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "error": compression_result.get("error", "Failed to compress lecture content"),
+                "transcript": transcript,
+                "session_id": session_id
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Audio processing failed: {str(e)}"
+        }
 
 @fastapi_app.get("/context_status")
 async def context_status():

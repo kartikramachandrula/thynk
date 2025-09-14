@@ -30,6 +30,9 @@ class ExampleMentraOSApp extends AppServer {
   private isStreamingPhotos: Map<string, boolean> = new Map(); // Track if we are streaming photos for a user
   private nextPhotoTime: Map<string, number> = new Map(); // Track next photo time for a user
   private displayText: string = ''; // Store text to display
+  private isLectureMode: boolean = false; // Track if we are in lecture/transcription mode
+  private lectureSessionId: string = ""; // Current lecture session ID
+  private audioRecordingInterval: NodeJS.Timeout | null = null; // Audio capture interval
 
   constructor() {
     super({
@@ -76,7 +79,7 @@ class ExampleMentraOSApp extends AppServer {
       if (!command || command.length < 3) return;
 
       // Filter out ambient noise and non-command speech
-      const validCommands = ["start streaming", "stop streaming", "give hint", "hint", "help"];
+      const validCommands = ["start streaming", "stop streaming", "give hint", "hint", "help", "start audio transcription", "stop audio transcription", "start transcription", "stop transcription"];
       const isValidCommand = validCommands.some(cmd => command.includes(cmd));
       
       // Only process if it contains actual command keywords
@@ -117,6 +120,51 @@ class ExampleMentraOSApp extends AppServer {
               speed: 0.9
             }
           });
+        } else if (command.includes("start audio transcription") || command.includes("start transcription")) {
+          if (!this.isLectureMode) {
+            this.isLectureMode = true;
+            this.lectureSessionId = `transcription_${Date.now()}`;
+            
+            try {
+              await session.audio.speak("Starting audio transcription mode. I'll capture and process your speech.", {
+                voice_settings: {
+                  stability: 0.7,
+                  similarity_boost: 0.8,
+                  style: 0.3,
+                  speed: 0.9
+                }
+              });
+              
+              // Start periodic audio capture for transcription processing
+              this.startLectureAudioCapture();
+              session.layouts.showTextWall("Audio transcription activated", {durationMs: 3000});
+              
+            } catch (error) {
+              this.logger.error("Error in TTS:", error);
+            }
+          }
+        } else if (command.includes("stop audio transcription") || command.includes("stop transcription")) {
+          if (this.isLectureMode) {
+            this.isLectureMode = false;
+            
+            try {
+              await session.audio.speak("Stopping audio transcription mode. Processing complete.", {
+                voice_settings: {
+                  stability: 0.7,
+                  similarity_boost: 0.8,
+                  style: 0.3,
+                  speed: 0.9
+                }
+              });
+              
+              // Stop audio capture
+              this.stopLectureAudioCapture();
+              session.layouts.showTextWall("Audio transcription deactivated", {durationMs: 3000});
+              
+            } catch (error) {
+              this.logger.error("Error in TTS:", error);
+            }
+          }
         } else if (command.includes("give hint") || command.includes("hint") || command.includes("help")) {
           session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
           try {
@@ -404,6 +452,66 @@ class ExampleMentraOSApp extends AppServer {
       const html = await ejs.renderFile(templatePath, {});
       res.send(html);
     });
+  }
+
+  // Audio capture functions for lecture/transcription mode
+  private startLectureAudioCapture() {
+    if (this.audioRecordingInterval) {
+      clearInterval(this.audioRecordingInterval);
+    }
+    
+    // Capture audio every 30 seconds during transcription mode
+    this.audioRecordingInterval = setInterval(async () => {
+      if (this.isLectureMode) {
+        await this.captureAndProcessAudio();
+      }
+    }, 30000);
+    
+    this.logger.info("Started audio transcription capture");
+  }
+  
+  private stopLectureAudioCapture() {
+    if (this.audioRecordingInterval) {
+      clearInterval(this.audioRecordingInterval);
+      this.audioRecordingInterval = null;
+    }
+    
+    this.lectureSessionId = "";
+    this.logger.info("Stopped audio transcription capture");
+  }
+  
+  private async captureAndProcessAudio() {
+    try {
+      // TODO: Implement actual audio capture from MentraOS
+      // For now, using placeholder audio data
+      const placeholderAudioBase64 = "placeholder_audio_data";
+      
+      const response = await fetch(`${process.env.BACKEND_URL}/process-audio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: this.lectureSessionId,
+          audio_base64: placeholderAudioBase64
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        this.logger.info("Audio transcription processed successfully:", {
+          session: result.session_id,
+          transcript_length: result.transcript?.length,
+          compressed_length: result.compressed_content?.length
+        });
+      } else {
+        this.logger.error("Audio transcription processing failed:", result.error);
+      }
+      
+    } catch (error) {
+      this.logger.error("Error capturing/processing audio for transcription:", error);
+    }
   }
 }
 
