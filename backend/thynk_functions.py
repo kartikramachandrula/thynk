@@ -15,7 +15,7 @@ from redis_client import redis_client
 load_dotenv()
 
 # Initialize Anthropic client
-anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+anthropic_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_KEY"))
 
 # Store previous content for comparison
 _previous_content: Dict[str, str] = {}
@@ -99,7 +99,7 @@ Provide a concise summary (2-3 sentences max) of the most educationally relevant
 
         try:
             response = anthropic_client.messages.create(
-                model="claude-3-sonnet-20240229",
+                model="claude-opus-4-1-20250805",
                 max_tokens=150,
                 temperature=0.3,
                 messages=[
@@ -222,7 +222,7 @@ Provide your hint in markdown format, keeping it concise but helpful (2-4 senten
 
         try:
             response = anthropic_client.messages.create(
-                model="claude-3-sonnet-20240229",
+                model="claude-opus-4-1-20250805",
                 max_tokens=300,
                 temperature=0.7,
                 messages=[
