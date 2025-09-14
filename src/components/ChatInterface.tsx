@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, HelpCircle, CheckCircle, BookOpen, Sparkles, Bot, Upload, Paperclip } from 'lucide-react';
+import { Send, HelpCircle, BookOpen, Sparkles, Bot, Upload, Paperclip } from 'lucide-react';
 // import { useToast } from '@/hooks/use-toast';
 import brainIllustration from '@/assets/brain-illustration.jpg';
 import studyDesk from '@/assets/study-desk.jpg';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -42,19 +43,16 @@ const ChatInterface = () => {
 
   const callBackendHint = async (mode: 'hint' | 'check') => {
     try {
-      const response = await fetch('http://localhost:8000/give-hint', {
+      const response = await fetch('http://localhost:3000/give_hint', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
-      return data.hint || 'No response from server';
+      const responseText = await response.text();
+      return responseText || 'No response from server';
     } catch (error) {
       console.error('Error calling backend:', error);
       return mode === 'hint' 
@@ -277,8 +275,8 @@ const ChatInterface = () => {
                       {message.content}
                     </div>
                   ) : (
-                    <div className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">
-                      {message.content}
+                    <div className="text-gray-700 text-lg leading-relaxed prose prose-lg max-w-none">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
                   )}
                 </div>
@@ -316,18 +314,6 @@ const ChatInterface = () => {
               >
                 <HelpCircle className="w-4 h-4 text-purple-600" />
                 <span className="font-medium text-lg">Give Hint</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  addMessage('Check work', 'user');
-                  simulateAIResponse('Check work', 'check');
-                }}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-6 py-2 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 shadow-sm"
-              >
-                <CheckCircle className="w-4 h-4 text-indigo-600" />
-                <span className="font-medium text-lg">Check Work</span>
               </Button>
             </div>
             

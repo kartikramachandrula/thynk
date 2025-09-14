@@ -86,19 +86,21 @@ def get_claude_client():
     """Get Claude API client"""
     try:
         from anthropic import Anthropic
-        return Anthropic(api_key=os.environ.get("CLAUDE_KEY"))
-    except ImportError:
-        raise HTTPException(
-            status_code=500,
-            detail="Anthropic client not available"
-        )
+        api_key = os.environ.get("CLAUDE_KEY")
+        if not api_key:
+            raise Exception("CLAUDE_KEY environment variable not set")
+        return Anthropic(api_key=api_key)
+    except ImportError as e:
+        raise Exception(f"Anthropic package not installed: {e}")
+    except Exception as e:
+        raise Exception(f"Failed to create Claude client: {e}")
 
 def call_claude_api(messages: List[Dict[str, str]], max_tokens: int = 1500) -> str:
     """Call Claude API with messages"""
-    client = get_claude_client()
     try:
+        client = get_claude_client()
         response = client.messages.create(
-            model="claude-3-5-sonnet-20240620",
+            model="claude-3-haiku-20240307",
             max_tokens=max_tokens,
             messages=messages,
         )
@@ -133,10 +135,14 @@ Content to analyze:
 
 def get_context() -> Dict[str, Any]:
     """Retrieve stored context with time-based weighting"""
-    redis_client = get_redis_client()
-    context_keys = redis_client.keys("math_context:*")
-    if not context_keys:
-        return {"context": "No previous context available", "entries": []}
+    try:
+        redis_client = get_redis_client()
+        context_keys = redis_client.keys("math_context:*")
+        if not context_keys:
+            return {"context": "No previous context available", "entries": []}
+    except Exception:
+        # Fallback when Redis is not available
+        return {"context": "Sample math context: Working on algebra problems involving linear equations and quadratic functions.", "entries": []}
     
     context_entries = []
     current_time = int(time.time())
@@ -180,12 +186,12 @@ async def context_compression_endpoint(request: Request):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@fastapi_app.post("/give_hint")
-async def give_hint(request: Request):
+# TODO: change to post later
+@fastapi_app.get("/give_hint")
+async def give_hint():
     """Generate tutoring hints based on stored context and current situation"""
     try:
-        data = await request.json()
-        current_learned = data.get("learned", "")
+        current_learned = "Student is requesting a hint"
         stored_context = get_context()["context"]
         
         prompt = f"""You are a friendly math tutor. Based on the stored context and the student's current situation, provide a helpful hint for the next step in markdown format.
@@ -195,7 +201,6 @@ STORED CONTEXT:
 
 CURRENT SITUATION:
 {current_learned}"""
-        
         messages = [{"role": "user", "content": prompt}]
         hint_response = call_claude_api(messages)
         return Response(hint_response, media_type="text/markdown; charset=utf-8")
