@@ -9,11 +9,7 @@ try:
 except ImportError:
     _ANTHROPIC_OK = False
 
-<<<<<<< HEAD
 from .base_ocr import BaseOCR, OCRResponse, TextPhrase
-=======
-from .base_ocr import BaseOCR, SimpleOCRResponse, TextPhrase
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 from .claude_model import ClaudeModel
 from .cerebras_model import CerebrasModel
 
@@ -55,11 +51,7 @@ class JuryModel(BaseOCR):
         """No concrete client to initialize for the orchestrator."""
         return None
 
-<<<<<<< HEAD
     async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
-=======
-    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         """Run multiple OCR backends and return up to 4 outputs as phrases."""
         texts: list[str] = []
 
@@ -69,13 +61,7 @@ class JuryModel(BaseOCR):
             if claude.is_available():
                 res = await claude.extract_text_from_image(image_base64)
                 if res and res.full_text:
-<<<<<<< HEAD
                     texts.append(res.full_text.strip())
-=======
-                    candidate = res.full_text.strip()
-                    print("Jury candidate [Claude]:", candidate)
-                    texts.append(candidate)
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         except Exception as e:
             # Log and continue with others
             print(f"Jury: Claude failed: {e}")
@@ -83,11 +69,8 @@ class JuryModel(BaseOCR):
         # 2) Run Cerebras variants (if available)
         cerebras_variants = [
             "gpt-oss-120b",
-<<<<<<< HEAD
             "llama3.1-8b",
             "qwen-3-32b",
-=======
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         ]
         for model_type in cerebras_variants:
             if len(texts) >= 4:
@@ -97,13 +80,7 @@ class JuryModel(BaseOCR):
                 if cerebras.is_available():
                     res = await cerebras.extract_text_from_image(image_base64)
                     if res and res.full_text:
-<<<<<<< HEAD
                         texts.append(res.full_text.strip())
-=======
-                        candidate = res.full_text.strip()
-                        print(f"Jury candidate [Cerebras::{model_type}]:", candidate)
-                        texts.append(candidate)
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
             except Exception as e:
                 print(f"Jury: Cerebras ({model_type}) failed: {e}")
 
@@ -111,14 +88,6 @@ class JuryModel(BaseOCR):
         texts = [t for t in texts if t]
         texts = texts[:4]
 
-<<<<<<< HEAD
-=======
-        # Log all candidates
-        print(f"Jury candidates collected ({len(texts)}):")
-        for i, t in enumerate(texts, start=1):
-            print(f"  {i}. {t}")
-
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         if not texts:
             raise HTTPException(status_code=500, detail="No OCR outputs available from ensemble")
 
@@ -132,7 +101,6 @@ class JuryModel(BaseOCR):
                     "You are a world-class OCR aggregation system. You will be given up to four OCR outputs "
                     "that attempt to read the same scene. Your job is to produce a single, clean, faithful, and concise "
                     "final text that best represents the underlying content. Remove duplicates, resolve minor conflicts, "
-<<<<<<< HEAD
                     "and prefer the clearly correct words. Do not add commentary. Return ONLY the final text."
                 )
                 user_prompt = (
@@ -141,18 +109,6 @@ class JuryModel(BaseOCR):
                 )
                 resp = client.messages.create(
                     model="claude-4-sonnet",
-=======
-                    "and prefer the clearly correct words. If any mathematical expressions or equations appear, ensure they are formatted using MathJAX: use $...$ for inline math and $$...$$ for display equations (e.g., \\frac{a}{b}, \\sqrt{x}, x^{2}, a_{i}). "
-                    "Do not add commentary. Return ONLY the final text."
-                )
-                user_prompt = (
-                    "Aggregate the following OCR candidate outputs into a single best representation. "
-                    "When writing any equations, use MathJAX formatting as described.\n\n"
-                    f"Candidates:\n{numbered}\n\nReturn only the final consolidated text."
-                )
-                resp = client.messages.create(
-                    model="claude-sonnet-4-20250514",
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
                     max_tokens=512,
                     system=system_prompt,
                     messages=[{"role": "user", "content": user_prompt}],
@@ -170,19 +126,11 @@ class JuryModel(BaseOCR):
             # Fallback: choose the longest candidate as a heuristic
             aggregated_text = max(texts, key=len)
 
-<<<<<<< HEAD
         # Return only the aggregated text as the final result
         phrase = TextPhrase(text=aggregated_text, confidence=0.9)
         return OCRResponse(
             phrases=[phrase],
             full_text=aggregated_text,
             average_confidence=phrase.confidence,
-=======
-        # Log final aggregation result
-        print("Jury aggregated text:", aggregated_text)
-
-        return SimpleOCRResponse(
-            full_text=aggregated_text,
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
             success=True,
         )

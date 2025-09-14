@@ -16,24 +16,12 @@ class OCRResponse(BaseModel):
     average_confidence: float
     success: bool
 
-<<<<<<< HEAD
-=======
-class SimpleOCRResponse(BaseModel):
-    """Simplified response exposed by API endpoints."""
-    full_text: str
-    success: bool
-
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 # Abstract base class for OCR models
 class BaseOCR(ABC):
     """Abstract base class for OCR implementations"""
     
     @abstractmethod
-<<<<<<< HEAD
     async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
-=======
-    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         """Extract text from base64 encoded image"""
         pass
     

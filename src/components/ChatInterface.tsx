@@ -40,7 +40,6 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
-<<<<<<< HEAD
   const callBackendHint = async (mode: 'hint' | 'check') => {
     try {
       const response = await fetch('http://localhost:8000/give-hint', {
@@ -48,26 +47,12 @@ const ChatInterface = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-=======
-  const callBackendHint = async (mode: 'hint' | 'check', learned: string = '') => {
-    try {
-      const response = await fetch('http://localhost:8000/give-hint', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          learned: learned || inputValue || 'Current work context',
-          question: learned || inputValue || ''
-        })
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
       });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-<<<<<<< HEAD
       const data = await response.json();
       return data.hint || 'No response from server';
     } catch (error) {
@@ -75,16 +60,6 @@ const ChatInterface = () => {
       return mode === 'hint' 
         ? 'Unable to get hint at the moment. Please try again.'
         : 'Unable to check work at the moment. Please try again.';
-=======
-      // The endpoint returns JSON with hint field
-      const result = await response.json();
-      return result.hint || 'No response from server';
-    } catch (error) {
-      console.error('Error calling backend:', error);
-      return mode === 'hint' 
-        ? '💡 **Hint:** Unable to get hint at the moment. Please try again.'
-        : '🔍 **Check:** Unable to check work at the moment. Please try again.';
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
     }
   };
 
@@ -94,11 +69,7 @@ const ChatInterface = () => {
     let response = '';
     
     if (mode === 'hint' || mode === 'check') {
-<<<<<<< HEAD
       response = await callBackendHint(mode);
-=======
-      response = await callBackendHint(mode, userInput);
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
     } else {
       // Simulate API delay for general responses
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));

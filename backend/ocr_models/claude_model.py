@@ -7,11 +7,7 @@ import json
 from typing import List, Dict, Any
 from fastapi import HTTPException
 
-<<<<<<< HEAD
 from .base_ocr import BaseOCR, OCRResponse, TextPhrase
-=======
-from .base_ocr import BaseOCR, SimpleOCRResponse, TextPhrase
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 
 # Claude API imports
 try:
@@ -47,7 +43,6 @@ class ClaudeModel(BaseOCR):
             self._claude_client = anthropic.Anthropic(api_key=claude_api_key)
         return self._claude_client
     
-<<<<<<< HEAD
     async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
         """Extract text from base64 encoded image using Claude 4 Sonnet"""
         
@@ -62,28 +57,12 @@ class ClaudeModel(BaseOCR):
             # Convert to supported format if needed
             if pil_image.format not in ['JPEG', 'PNG', 'GIF', 'WEBP']:
                 # Convert to PNG
-=======
-    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
-        """Extract text from base64 encoded image using Claude. Returns plain text only."""
-
-        try:
-            # Get Claude client
-            client = self._get_claude_client()
-
-            # Determine image format from base64 data
-            image_data = base64.b64decode(image_base64)
-            pil_image = Image.open(io.BytesIO(image_data))
-
-            # Convert to supported format if needed
-            if pil_image.format not in ['JPEG', 'PNG', 'GIF', 'WEBP']:
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
                 buffer = io.BytesIO()
                 pil_image.save(buffer, format='PNG')
                 image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                 media_type = "image/png"
             else:
                 media_type = f"image/{pil_image.format.lower()}"
-<<<<<<< HEAD
             
             # Define JSON schema for structured output
             json_schema = {
@@ -127,20 +106,6 @@ Return ONLY the JSON response, no additional text or formatting."""
             # Make API call to Claude with vanilla text generation
             response = client.messages.create(
                 model="claude-4-sonnet",
-=======
-
-            # Prompts for plain text OCR output
-            system_prompt = (
-                "You are an expert OCR system. Extract all visible text from the image. "
-                "If the text contains mathematical expressions or equations, format them using MathJAX: use $...$ for inline math and $$...$$ for display equations (e.g., \\frac{a}{b}, \\sqrt{x}, superscripts as x^{2}, subscripts as a_{i}). "
-                "Return ONLY the extracted text with no additional commentary, labels, or JSON."
-            )
-            user_prompt = "Extract and return only the text from this image. When writing any equations, use MathJAX formatting as described."
-
-            # Claude API call
-            response = client.messages.create(
-                model="claude-opus-4-1-20250805",
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
                 max_tokens=4000,
                 system=system_prompt,
                 messages=[
@@ -158,22 +123,14 @@ Return ONLY the JSON response, no additional text or formatting."""
                             },
                         ],
                     }
-<<<<<<< HEAD
                 ]
             )
             
             # Parse the response from text blocks
-=======
-                ],
-            )
-
-            # Gather all text blocks into a single string
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
             response_text_parts: List[str] = []
             for block in response.content:
                 if getattr(block, "type", None) == "text":
                     response_text_parts.append(block.text)
-<<<<<<< HEAD
             response_text = "\n".join([p for p in response_text_parts if p]).strip()
 
             # Extract JSON from response
@@ -241,17 +198,4 @@ Return ONLY the JSON response, no additional text or formatting."""
             raise HTTPException(
                 status_code=500,
                 detail=f"Claude OCR processing failed: {str(e)}"
-=======
-            full_text = "\n".join([p for p in response_text_parts if p]).strip()
-
-            return SimpleOCRResponse(
-                full_text=full_text,
-                success=True,
-            )
-
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Claude OCR processing failed: {str(e)}",
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
             )

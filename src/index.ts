@@ -1,9 +1,5 @@
-<<<<<<< HEAD
 import { AppServer, AppSession, ViewType, AuthenticatedRequest, PhotoData } from '@mentra/sdk';
 import { Request, Response } from 'express';
-=======
-import { AppServer, AppSession, AuthenticatedRequest, PhotoData } from '@mentra/sdk';
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 import * as ejs from 'ejs';
 import * as path from 'path';
 import express from 'express';
@@ -35,12 +31,6 @@ class ExampleMentraOSApp extends AppServer {
   private isStreamingPhotos: Map<string, boolean> = new Map(); // Track if we are streaming photos for a user
   private nextPhotoTime: Map<string, number> = new Map(); // Track next photo time for a user
   private displayText: string = ''; // Store text to display
-<<<<<<< HEAD
-=======
-  private isLectureMode: boolean = false; // Track if we are in lecture/transcription mode
-  private lectureSessionId: string = ""; // Current lecture session ID
-  private audioRecordingInterval: NodeJS.Timeout | null = null; // Audio capture interval
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 
   constructor() {
     super({
@@ -63,180 +53,6 @@ class ExampleMentraOSApp extends AppServer {
     this.isStreamingPhotos.set(userId, false);
     this.nextPhotoTime.set(userId, Date.now());
 
-<<<<<<< HEAD
-=======
-    // Welcome message for voice commands
-    await session.audio.speak("Say 'start streaming' to begin, 'stop streaming' to end, or 'help' for hints.", {
-      voice_settings: {
-        stability: 0.7,
-        similarity_boost: 0.8,
-        style: 0.3,
-        speed: 0.9
-      }
-    });
-
-    // Track processing state to prevent loops
-    let isProcessingCommand = false;
-
-    // Listen for voice commands via transcription
-    const unsubscribe = session.events.onTranscription(async (data) => {
-      // Only process final transcriptions to avoid partial commands
-      if (!data.isFinal || isProcessingCommand) return;
-
-      const command = data.text.toLowerCase().trim();
-      
-      // Skip empty commands or very short commands that might be noise
-      if (!command || command.length < 3) return;
-
-      // Filter out ambient noise and non-command speech
-      const validCommands = ["start streaming", "stop streaming", "give hint", "hint", "help", "start audio transcription", "stop audio transcription", "start transcription", "stop transcription"];
-      const isValidCommand = validCommands.some(cmd => command.includes(cmd));
-      
-      // Only process if it contains actual command keywords
-      if (!isValidCommand) {
-        this.logger.debug(`Ignoring non-command speech: "${command}"`);
-        return;
-      }
-
-      this.logger.info(`Voice command received: "${command}"`);
-      
-      // Set processing flag to prevent concurrent processing
-      isProcessingCommand = true;
-
-      try {
-        if (command.includes("start streaming")) {
-          // Voice command to start streaming mode
-          this.isStreamingPhotos.set(userId, true);
-          this.logger.info(`Streaming mode started via voice for user ${userId}`);
-          session.layouts.showTextWall("Streaming mode activated", {durationMs: 3000});
-          await session.audio.speak("Streaming mode activated. Photos will be taken automatically.", {
-            voice_settings: {
-              stability: 0.7,
-              similarity_boost: 0.8,
-              style: 0.3,
-              speed: 0.9
-            }
-          });
-        } else if (command.includes("stop streaming")) {
-          // Voice command to stop streaming mode
-          this.isStreamingPhotos.set(userId, false);
-          this.logger.info(`Streaming mode stopped via voice for user ${userId}`);
-          session.layouts.showTextWall("Streaming mode deactivated", {durationMs: 3000});
-          await session.audio.speak("Streaming mode deactivated.", {
-            voice_settings: {
-              stability: 0.7,
-              similarity_boost: 0.8,
-              style: 0.3,
-              speed: 0.9
-            }
-          });
-        } else if (command.includes("start audio transcription") || command.includes("start transcription")) {
-          if (!this.isLectureMode) {
-            this.isLectureMode = true;
-            this.lectureSessionId = `transcription_${Date.now()}`;
-            
-            try {
-              await session.audio.speak("Starting audio transcription mode. I'll capture and process your speech.", {
-                voice_settings: {
-                  stability: 0.7,
-                  similarity_boost: 0.8,
-                  style: 0.3,
-                  speed: 0.9
-                }
-              });
-              
-              // Start periodic audio capture for transcription processing
-              this.startLectureAudioCapture();
-              session.layouts.showTextWall("Audio transcription activated", {durationMs: 3000});
-              
-            } catch (error) {
-              this.logger.error("Error in TTS:", error);
-            }
-          }
-        } else if (command.includes("stop audio transcription") || command.includes("stop transcription")) {
-          if (this.isLectureMode) {
-            this.isLectureMode = false;
-            
-            try {
-              await session.audio.speak("Stopping audio transcription mode. Processing complete.", {
-                voice_settings: {
-                  stability: 0.7,
-                  similarity_boost: 0.8,
-                  style: 0.3,
-                  speed: 0.9
-                }
-              });
-              
-              // Stop audio capture
-              this.stopLectureAudioCapture();
-              session.layouts.showTextWall("Audio transcription deactivated", {durationMs: 3000});
-              
-            } catch (error) {
-              this.logger.error("Error in TTS:", error);
-            }
-          }
-        } else if (command.includes("give hint") || command.includes("hint") || command.includes("help")) {
-          session.layouts.showTextWall("Voice command: Giving hint...", {durationMs: 3000});
-          try {
-            // Call the give_hint endpoint with the user's command
-            const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:8000'}/give-hint`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                learned: command,
-                question: command
-              })
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              const hintText = result.hint || "Here's a hint to help you with your problem!";
-              // Speak the hint response from the backend (strip markdown formatting for speech)
-              const speechText = hintText.replace(/[*#`]/g, '').replace(/💡/g, '');
-              await session.audio.speak(speechText, {
-                voice_settings: {
-                  stability: 0.7,
-                  similarity_boost: 0.8,
-                  style: 0.3,
-                  speed: 0.9
-                }
-              });
-            } else {
-              await session.audio.speak("Sorry, I couldn't generate a hint right now.", {
-                voice_settings: {
-                  stability: 0.7,
-                  similarity_boost: 0.8,
-                  style: 0.3,
-                  speed: 0.9
-                }
-              });
-            }
-          } catch (error) {
-            this.logger.error(`Error getting hint: ${error}`);
-            await session.audio.speak("Sorry, there was an error getting your hint.", {
-              voice_settings: {
-                stability: 0.7,
-                similarity_boost: 0.8,
-                style: 0.3,
-                speed: 0.9
-              }
-            });
-          }
-        }
-      } finally {
-        // Reset processing flag after a delay to prevent rapid re-triggering
-        setTimeout(() => {
-          isProcessingCommand = false;
-        }, 2000);
-      }
-    });
-
-    // Clean up transcription listener when session ends
-    this.addCleanupHandler(unsubscribe);
-
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
     // this gets called whenever a user presses a button
     session.events.onButtonPress(async (button) => {
       this.logger.info(`Button pressed: ${button.buttonId}, type: ${button.pressType}`);
@@ -307,11 +123,7 @@ class ExampleMentraOSApp extends AppServer {
 
       if (response.ok) {
         const ocrResult = await response.json();
-<<<<<<< HEAD
         this.logger.info(`OCR analysis completed for user ${userId}: ${ocrResult.text}`);
-=======
-        this.logger.info(`OCR analysis completed for user ${userId}: ${ocrResult.full_text}`);
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         // You can store the OCR result or use it as needed
       } else {
         this.logger.error(`OCR analysis failed: ${response.statusText}`);
@@ -439,7 +251,6 @@ class ExampleMentraOSApp extends AppServer {
       res.json({ success: true, text: this.displayText });
     });
 
-<<<<<<< HEAD
     // API endpoint for giving hints
     app.get('/api/get_hint', (req: any, res: any) => {
       if (!this.displayText) {
@@ -458,8 +269,6 @@ class ExampleMentraOSApp extends AppServer {
       });
     });
 
-=======
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 
     // Chat interface route
     app.get('/chat', async (req: any, res: any) => {
@@ -489,69 +298,6 @@ class ExampleMentraOSApp extends AppServer {
       res.send(html);
     });
   }
-<<<<<<< HEAD
-=======
-
-  // Audio capture functions for lecture/transcription mode
-  private startLectureAudioCapture() {
-    if (this.audioRecordingInterval) {
-      clearInterval(this.audioRecordingInterval);
-    }
-    
-    // Capture audio every 30 seconds during transcription mode
-    this.audioRecordingInterval = setInterval(async () => {
-      if (this.isLectureMode) {
-        await this.captureAndProcessAudio();
-      }
-    }, 30000);
-    
-    this.logger.info("Started audio transcription capture");
-  }
-  
-  private stopLectureAudioCapture() {
-    if (this.audioRecordingInterval) {
-      clearInterval(this.audioRecordingInterval);
-      this.audioRecordingInterval = null;
-    }
-    
-    this.lectureSessionId = "";
-    this.logger.info("Stopped audio transcription capture");
-  }
-  
-  private async captureAndProcessAudio() {
-    try {
-      // TODO: Implement actual audio capture from MentraOS
-      // For now, using placeholder audio data
-      const placeholderAudioBase64 = "placeholder_audio_data";
-      
-      const response = await fetch(`${process.env.BACKEND_URL}/process-audio`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session_id: this.lectureSessionId,
-          audio_base64: placeholderAudioBase64
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        this.logger.info("Audio transcription processed successfully:", {
-          session: result.session_id,
-          transcript_length: result.transcript?.length,
-          compressed_length: result.compressed_content?.length
-        });
-      } else {
-        this.logger.error("Audio transcription processing failed:", result.error);
-      }
-      
-    } catch (error) {
-      this.logger.error("Error capturing/processing audio for transcription:", error);
-    }
-  }
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 }
 
 

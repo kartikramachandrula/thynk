@@ -4,11 +4,7 @@ from PIL import Image
 import numpy as np
 from fastapi import HTTPException
 
-<<<<<<< HEAD
 from .base_ocr import BaseOCR, OCRResponse, TextPhrase
-=======
-from .base_ocr import BaseOCR, SimpleOCRResponse, TextPhrase
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
 
 # EasyOCR imports
 try:
@@ -44,11 +40,7 @@ class EasyOCRModel(BaseOCR):
             self._ocr_reader = easyocr.Reader(['en'])
         return self._ocr_reader
     
-<<<<<<< HEAD
     async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
-=======
-    async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
         """Extract text from base64 encoded image using EasyOCR"""
         
         try:
@@ -85,15 +77,10 @@ class EasyOCRModel(BaseOCR):
             # Create phrases list
             phrases = [TextPhrase(text=text, confidence=confidence) for text, confidence in zip(detected_texts, confidences)]
             
-<<<<<<< HEAD
             return OCRResponse(
                 phrases=phrases,
                 full_text=full_text,
                 average_confidence=avg_confidence,
-=======
-            return SimpleOCRResponse(
-                full_text=full_text ,
->>>>>>> 948a37ea296a26d67b78ce30e503ad388b399512
                 success=True
             )
             
