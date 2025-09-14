@@ -141,12 +141,18 @@ async def analyze_photo(request: OCRRequest):
     """Analyze photo from Mentra glasses and extract text using OCR"""
     return await extract_text_from_image(request.image_base64)
 
-@fastapi_app.get("/give-hint")
-async def give_hint():
-    """Outputs the text to the user"""
-    text = "Hello, here's your hint!"
-    return {"hint": text, "success": True}
-
+@fastapi_app.get("/context_status")
+async def context_status():
+    """Debug endpoint to check stored context"""
+    try:
+        context_data = await get_context()
+        return {
+            "status": "success", 
+            "total_entries": context_data["entries"], 
+            "context_preview": context_data["context"][:500] + "..." if len(context_data["context"]) > 500 else context_data["context"]
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # Modal deployment setup (only if Modal is available)
 if MODAL_AVAILABLE:
