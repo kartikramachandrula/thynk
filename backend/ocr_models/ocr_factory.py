@@ -2,6 +2,8 @@ from .base_ocr import BaseOCR
 from .easyocr_model import EasyOCRModel
 from .google_vision_model import GoogleVisionModel
 from .claude_model import ClaudeModel
+from .cerebras_model import CerebrasModel
+from .jury_model import JuryModel
 
 class OCRFactory:
     """Factory class to create OCR model instances"""
@@ -16,6 +18,10 @@ class OCRFactory:
             return GoogleVisionModel()
         elif model_type.lower() == "claude":
             return ClaudeModel()
+        elif model_type.lower() == "cerebras":
+            return CerebrasModel()
+        elif model_type.lower() == "jury":
+            return JuryModel()
         else:
             raise ValueError(f"Unsupported OCR model type: {model_type}")
     
@@ -38,5 +44,15 @@ class OCRFactory:
         claude_model = ClaudeModel()
         if claude_model.is_available():
             models.append("claude")
+        
+        # Check Cerebras availability
+        cerebras_model = CerebrasModel()
+        if cerebras_model.is_available():
+            models.append("cerebras")
+        
+        # Check Jury availability
+        jury_model = JuryModel()
+        if jury_model.is_available():
+            models.append("jury")
         
         return models
