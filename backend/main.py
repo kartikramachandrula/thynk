@@ -129,6 +129,12 @@ async def analyze_photo(request: OCRRequest):
     """Analyze photo from Mentra glasses and extract text using OCR"""
     return await extract_text_from_image(request.image_base64)
 
+@fastapi_app.get("/give-hint")
+async def give_hint():
+    """Outputs the text to the user"""
+    text = "Hello, here's your hint!"
+    return {"hint": text, "success": True}
+
 # Modal deployment setup (only if Modal is available)
 if MODAL_AVAILABLE:
     # Create Modal app (use 'app' as the variable name for Modal CLI)
