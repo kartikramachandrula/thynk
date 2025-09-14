@@ -106,28 +106,7 @@ class ExampleMentraOSApp extends AppServer {
     this.logger.info(`Session stopped for user ${userId}, reason: ${reason}`);
   }
 
-  /**
-   * Cache a photo for display and send to backend for OCR analysis
-   */
-  private async cachePhoto(photo: PhotoData, userId: string) {
-    // create a new stored photo object which includes the photo data and the user id
-    const cachedPhoto: StoredPhoto = {
-      requestId: photo.requestId,
-      buffer: photo.buffer,
-      timestamp: photo.timestamp,
-      userId: userId,
-      mimeType: photo.mimeType,
-      filename: photo.filename,
-      size: photo.size
-    };
-
-    // cache the photo for display
-    this.photos.set(userId, cachedPhoto);
-    // update the latest photo timestamp
-    this.latestPhotoTimestamp.set(userId, cachedPhoto.timestamp.getTime());
-    this.logger.info(`Photo cached for user ${userId}, timestamp: ${cachedPhoto.timestamp}`);
-
-    // Send photo to backend for OCR analysis
+  private async makeBackendRequest(photo: PhotoData, userId: string) {
     try {
       const base64Image = photo.buffer.toString('base64');
       const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
@@ -152,6 +131,33 @@ class ExampleMentraOSApp extends AppServer {
     } catch (error) {
       this.logger.error(`Error sending photo to backend: ${error}`);
     }
+  }
+  
+  /**
+   * Cache a photo for display and send to backend for OCR analysis
+   */
+  private async cachePhoto(photo: PhotoData, userId: string) {
+    // create a new stored photo object which includes the photo data and the user id
+    const cachedPhoto: StoredPhoto = {
+      requestId: photo.requestId,
+      buffer: photo.buffer,
+      timestamp: photo.timestamp,
+      userId: userId,
+      mimeType: photo.mimeType,
+      filename: photo.filename,
+      size: photo.size
+    };
+
+    // cache the photo for display
+    this.photos.set(userId, cachedPhoto);
+    // update the latest photo timestamp
+    this.latestPhotoTimestamp.set(userId, cachedPhoto.timestamp.getTime());
+    this.logger.info(`Photo cached for user ${userId}, timestamp: ${cachedPhoto.timestamp}`);
+
+    // Send photo to backend for OCR analysis (fire and forget)
+    this.makeBackendRequest(photo, userId).catch(error => {
+      this.logger.error(`Backend request failed for user ${userId}:`, error);
+    });
   }
 
 
