@@ -6,7 +6,7 @@ import json
 import time
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
-from upstash_redis import Redis
+from upstash_redis.asyncio import Redis
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,7 +53,7 @@ class ThynkRedisClient:
             context_id = f"ctx_{int(timestamp * 1000)}"  # Unique ID with millisecond precision
             
             # Store the context data
-            await self.client.hset(context_key, {context_id: json.dumps(context_data)})
+            await self.client.hset(context_key, context_id, json.dumps(context_data))
             
             # Also maintain a sorted set for easy time-based queries
             sorted_key = f"{context_key}:sorted"
@@ -62,7 +62,7 @@ class ThynkRedisClient:
             # Update metadata
             meta_key = self._get_metadata_key(user_id)
             await self.client.hincrby(meta_key, "total_entries", 1)
-            await self.client.hset(meta_key, {"last_updated": timestamp})
+            await self.client.hset(meta_key, "last_updated", timestamp)
             
             return True
             
@@ -79,6 +79,8 @@ class ThynkRedisClient:
             # Get most recent context IDs
             recent_ids = await self.client.zrevrange(sorted_key, 0, max_entries - 1)
             
+            print("No recent data")
+
             if not recent_ids:
                 return []
             
@@ -90,6 +92,7 @@ class ThynkRedisClient:
                     ctx = json.loads(ctx_json)
                     context_data.append(ctx)
             
+            print(context_data)
             return context_data
             
         except Exception as e:

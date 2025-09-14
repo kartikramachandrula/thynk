@@ -18,6 +18,9 @@ from pydantic import BaseModel
 from PIL import Image
 import numpy as np
 from ocr_models.ocr_factory import OCRFactory
+from ocr_models.base_ocr import SimpleOCRResponse
+from redis_client import ThynkRedisClient
+
 
 # Import Thynk system components
 from .thynk_functions import (
@@ -51,6 +54,7 @@ load_dotenv()
 
 # Create FastAPI app
 fastapi_app = FastAPI(title="Rizzoids Backend", version="1.0.0")
+thynk_client = ThynkRedisClient()
 
 # --- Modal Setup ---
 app = modal.App("rizzoids-backend")
@@ -139,13 +143,25 @@ def get_ocr_model():
     return _ocr_model
 
 # OCR endpoints
-@fastapi_app.post("/ocr", response_model=OCRResponse)
+@fastapi_app.post("/ocr", response_model=SimpleOCRResponse)
 async def perform_ocr(request: OCRRequest):
     """Extract text from image using OCR"""
-    ocr_model = get_ocr_model()
-    return await ocr_model.extract_text_from_image(request.image_base64)
+    try:
+        ocr_model = get_ocr_model()
+        return await ocr_model.extract_text_from_image(request.image_base64)
+    except HTTPException as he:
+        import traceback
+        print("/ocr endpoint HTTPException:", he.detail)
+        print(traceback.format_exc())
+        raise he
+    except Exception as e:
+        import traceback
+        print("/ocr endpoint error:", e)
+        print(traceback.format_exc())
+        # Re-raise as HTTPException to ensure proper JSON response
+        raise HTTPException(status_code=500, detail=str(e))
 
-@fastapi_app.post("/analyze-photo", response_model=OCRResponse)
+@fastapi_app.post("/analyze-photo", response_model=SimpleOCRResponse)
 async def analyze_photo(request: OCRRequest):
     """Analyze photo from Mentra glasses and extract text using OCR with Thynk integration"""
     # Perform OCR
