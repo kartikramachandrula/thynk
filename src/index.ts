@@ -106,14 +106,17 @@ class ExampleMentraOSApp extends AppServer {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                learned: command
+                learned: command,
+                question: command
               })
             });
 
             if (response.ok) {
-              const hintText = await response.text();
-              // Speak the hint response from the backend
-              await session.audio.speak(`Here's a hint: ${hintText}`);
+              const result = await response.json();
+              const hintText = result.hint || "Here's a hint to help you with your problem!";
+              // Speak the hint response from the backend (strip markdown formatting for speech)
+              const speechText = hintText.replace(/[*#`]/g, '').replace(/💡/g, '');
+              await session.audio.speak(speechText);
             } else {
               await session.audio.speak("Sorry, I couldn't generate a hint right now.");
             }

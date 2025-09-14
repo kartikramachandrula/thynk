@@ -7,4 +7,5 @@ numpy
 opencv-python-headless
 easyocr==1.7.0
 anthropic==0.25.0
-aredis==1.1.8
+redis==5.0.1
+upstash-redis==0.15.0
