@@ -2,6 +2,7 @@ import { AppServer, AppSession, ViewType, AuthenticatedRequest, PhotoData } from
 import { Request, Response } from 'express';
 import * as ejs from 'ejs';
 import * as path from 'path';
+import express from 'express';
 
 /**
  * Interface representing a stored photo with metadata
@@ -29,6 +30,7 @@ class ExampleMentraOSApp extends AppServer {
   private latestPhotoTimestamp: Map<string, number> = new Map(); // Track latest photo timestamp per user
   private isStreamingPhotos: Map<string, boolean> = new Map(); // Track if we are streaming photos for a user
   private nextPhotoTime: Map<string, number> = new Map(); // Track next photo time for a user
+  private displayText: string = ''; // Store text to display
 
   constructor() {
     super({
@@ -131,10 +133,23 @@ class ExampleMentraOSApp extends AppServer {
 
 
   /**
- * Set up webview routes for photo display functionality
- */
+   * Set up webview routes for photo display functionality
+   */
   private setupWebviewRoutes(): void {
     const app = this.getExpressApp();
+
+    // Serve static files from dist directory (built React app)
+    app.use(express.static(path.join(process.cwd(), 'dist')));
+
+    // Root route - serve React app
+    app.get('/', (req: any, res: any) => {
+      res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+    });
+
+    // React chat route
+    app.get('/react-chat', (req: any, res: any) => {
+      res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+    });
 
     // API endpoint to get the latest photo for the authenticated user
     app.get('/api/latest-photo', (req: any, res: any) => {
@@ -179,6 +194,59 @@ class ExampleMentraOSApp extends AppServer {
         'Cache-Control': 'no-cache'
       });
       res.send(photo.buffer);
+    });
+
+    // API endpoint to get current display text
+    app.get('/api/display-text', (req: any, res: any) => {
+      if (!this.displayText) {
+        res.status(404).json({ error: 'No text available' });
+        return;
+      }
+
+      res.json({
+        text: this.displayText,
+        timestamp: Date.now()
+      });
+    });
+
+    // API endpoint to set display text
+    app.post('/api/display-text', (req: any, res: any) => {
+      const { text } = req.body;
+
+      if (!text || typeof text !== 'string') {
+        res.status(400).json({ error: 'Text is required and must be a string' });
+        return;
+      }
+
+      this.displayText = text;
+      res.json({ success: true, text: this.displayText });
+    });
+
+    // API endpoint for giving hints
+    app.get('/api/give_hint', (req: any, res: any) => {
+      const randomTexts = [
+        "The secret is to always look for patterns in the data.",
+        "Remember that the answer is often simpler than you think.",
+        "Try breaking the problem down into smaller pieces.",
+        "Sometimes the best approach is to work backwards from the solution.",
+        "Don't forget to check your assumptions - they might be wrong.",
+        "The key insight usually comes when you least expect it.",
+        "Consider what would happen if you changed just one variable.",
+        "Look for connections between seemingly unrelated concepts.",
+        "The most elegant solutions are often the most obvious ones.",
+        "When stuck, try explaining the problem to someone else."
+      ];
+      
+      const randomHint = randomTexts[Math.floor(Math.random() * randomTexts.length)];
+      res.json({ hint: randomHint });
+    });
+
+
+    // Chat interface route
+    app.get('/chat', async (req: any, res: any) => {
+      const templatePath = path.join(process.cwd(), 'views', 'chat-interface.ejs');
+      const html = await ejs.renderFile(templatePath, {});
+      res.send(html);
     });
 
     // Main webview route - displays the photo viewer interface
