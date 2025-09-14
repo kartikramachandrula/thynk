@@ -424,24 +424,6 @@ class ExampleMentraOSApp extends AppServer {
       res.json({ success: true, text: this.displayText });
     });
 
-    // API endpoint for giving hints
-    app.get('/api/get_hint', (req: any, res: any) => {
-      if (!this.displayText) {
-        res.status(404).json({ 
-          success: false,
-          error: 'No hint available at this time',
-          timestamp: new Date().toISOString()
-        });
-        return;
-      }
-
-      res.json({ 
-        success: true,
-        hint: this.displayText,
-        timestamp: new Date().toISOString()
-      });
-    });
-
 
     // Chat interface route
     app.get('/chat', async (req: any, res: any) => {

@@ -10,7 +10,7 @@ import anthropic
 import os
 from dotenv import load_dotenv
 
-from .redis_client import redis_client
+from redis_client import redis_client
 
 load_dotenv()
 
