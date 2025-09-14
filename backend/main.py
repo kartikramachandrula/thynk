@@ -1,5 +1,6 @@
 # Created by Melody Yu
 # Created on Sep 13, 2025
+# Enhanced for Thynk: Always Ask Y
 
 import os
 import json
@@ -11,11 +12,15 @@ from typing import Dict, Any, List, Optional
 
 import modal
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from PIL import Image
 import numpy as np
+
+# Import Thynk system components
+from .thynk_functions import is_different, context_compression, get_context, give_hint
+from .redis_client import redis_client
 
 # EasyOCR imports
 # try:
@@ -70,6 +75,19 @@ class OCRResponse(BaseModel):
     text: str
     confidence: Optional[float] = None
     success: bool
+
+# Thynk system models
+class ThynkContextRequest(BaseModel):
+    text: str
+
+class HintRequest(BaseModel):
+    learned: str
+    question: Optional[str] = ""
+
+class ContextStatusResponse(BaseModel):
+    status: str
+    total_entries: int
+    context_preview: str
 
 # Initialize EasyOCR reader (lazy loading)
 _ocr_reader = None
@@ -140,8 +158,27 @@ async def perform_ocr(request: OCRRequest):
 
 @fastapi_app.post("/analyze-photo", response_model=OCRResponse)
 async def analyze_photo(request: OCRRequest):
-    """Analyze photo from Mentra glasses and extract text using OCR"""
-    return await extract_text_from_image(request.image_base64)
+    """Analyze photo from Mentra glasses and extract text using OCR with Thynk integration"""
+    # Perform OCR
+    ocr_result = await extract_text_from_image(request.image_base64)
+    
+    # If OCR was successful, process with Thynk system
+    if ocr_result.success and ocr_result.text.strip():
+        try:
+            # Check if content is different enough to process
+            content_data = {"text": ocr_result.text}
+            different_result = is_different(content_data)
+            
+            # If content is different, compress and store it
+            if different_result.get("text"):
+                await context_compression(different_result)
+                print(f"Processed new learning content: {different_result['text'][:100]}...")
+                
+        except Exception as e:
+            print(f"Error processing with Thynk system: {e}")
+            # Continue with OCR result even if Thynk processing fails
+    
+    return ocr_result
 
 @fastapi_app.get("/context_status")
 async def context_status():
@@ -153,6 +190,77 @@ async def context_status():
             "total_entries": context_data["entries"], 
             "context_preview": context_data["context"][:500] + "..." if len(context_data["context"]) > 500 else context_data["context"]
         }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Thynk System Endpoints
+
+@fastapi_app.post("/give-hint")
+async def give_hint_endpoint(request: HintRequest):
+    """
+    Generate a helpful hint based on learned context.
+    This is the main endpoint for the frontend 'get hint' button.
+    """
+    try:
+        hint_text = await give_hint(request.learned, request.question)
+        return {"hint": hint_text, "status": "success"}
+    except Exception as e:
+        return {"hint": "💡 **Hint:** Keep working through the problem step by step!", "status": "error", "message": str(e)}
+
+@fastapi_app.post("/context-compression")
+async def context_compression_endpoint(request: ThynkContextRequest):
+    """
+    Manually trigger context compression (useful for testing)
+    """
+    try:
+        content_data = {"text": request.text}
+        await context_compression(content_data)
+        return {"status": "success", "message": "Context processed and stored"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@fastapi_app.get("/get-context")
+async def get_context_endpoint():
+    """
+    Retrieve current learning context
+    """
+    try:
+        context_data = await get_context()
+        return {
+            "status": "success",
+            "entries": context_data["entries"],
+            "context": context_data["context"]
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@fastapi_app.post("/is-different")
+async def is_different_endpoint(request: ThynkContextRequest):
+    """
+    Check if content is different enough to process (useful for testing)
+    """
+    try:
+        content_data = {"text": request.text}
+        result = is_different(content_data)
+        return {
+            "status": "success",
+            "is_different": bool(result.get("text")),
+            "content": result.get("text", "")
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@fastapi_app.delete("/clear-context")
+async def clear_context_endpoint():
+    """
+    Clear all stored context (useful for testing)
+    """
+    try:
+        success = await redis_client.clear_context()
+        if success:
+            return {"status": "success", "message": "Context cleared"}
+        else:
+            return {"status": "error", "message": "Failed to clear context"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -169,11 +277,12 @@ if MODAL_AVAILABLE:
         "pydantic==2.11.9",
         "pillow==10.1.0",
         "numpy",
-        "easyocr",
-        "google-cloud-vision",
         "easyocr==1.7.0",
-        "cerebras-cloud-sdk==1.50.1",
-        "numpy"
+        "anthropic==0.25.0",
+        "redis==5.0.1",
+        "upstash-redis==0.15.0",
+        "google-cloud-vision",
+        "cerebras-cloud-sdk==1.50.1"
     ])
     
     # Modal deployment using the same FastAPI app
