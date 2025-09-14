@@ -36,6 +36,9 @@ except ImportError:
 
 load_dotenv()
 
+# Create FastAPI app
+fastapi_app = FastAPI(title="Rizzoids Backend", version="1.0.0")
+
 # --- Modal Setup ---
 app = modal.App("rizzoids-backend")
 image = modal.Image.debian_slim(python_version="3.12").pip_install(
@@ -162,17 +165,15 @@ if MODAL_AVAILABLE:
         "easyocr",
         "google-cloud-vision",
         "easyocr==1.7.0",
-        "cerebras-cloud-sdk==1.50.1",,
+        "cerebras-cloud-sdk==1.50.1",
         "numpy"
     ])
     
     # Modal deployment using the same FastAPI app
     @app.function(
         image=image,
-        timeout=3600,
         memory=1024,
-        cpu=1.0,
-        max_containers=50
+        cpu=1.0
     )
     @modal.asgi_app(label="rizzoids-api")
     def modal_fastapi_app():
@@ -180,6 +181,7 @@ if MODAL_AVAILABLE:
 
 # Local development server
 if __name__ == "__main__":
+    import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "main:fastapi_app",

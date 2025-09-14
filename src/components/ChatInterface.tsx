@@ -40,23 +40,40 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  const callBackendHint = async (mode: 'hint' | 'check') => {
+    try {
+      const response = await fetch('http://localhost:8000/give-hint', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.hint || 'No response from server';
+    } catch (error) {
+      console.error('Error calling backend:', error);
+      return mode === 'hint' 
+        ? 'Unable to get hint at the moment. Please try again.'
+        : 'Unable to check work at the moment. Please try again.';
+    }
+  };
+
   const simulateAIResponse = async (userInput: string, mode: 'hint' | 'check' | 'general') => {
     setIsLoading(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-    
     let response = '';
     
-    switch (mode) {
-      case 'hint':
-        response = `💡 Here's a hint for "${userInput}": Consider breaking this down into smaller steps. Think about the core concepts involved and how they relate to each other.`;
-        break;
-      case 'check':
-        response = `✅ Checking your work on "${userInput}": This looks like a good approach! You might want to consider edge cases and ensure your solution is robust.`;
-        break;
-      default:
-        response = `Regarding "${userInput}": I understand you're asking about this topic. Let me provide some guidance and insights that might help you.`;
+    if (mode === 'hint' || mode === 'check') {
+      response = await callBackendHint(mode);
+    } else {
+      // Simulate API delay for general responses
+      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+      response = `Regarding "${userInput}": I understand you're asking about this topic. Let me provide some guidance and insights that might help you.`;
     }
     
     addMessage(response, 'ai');
