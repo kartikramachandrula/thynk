@@ -21,9 +21,22 @@ except ImportError:
 class CerebrasModel(BaseOCR):
     """Cerebras OCR implementation (scaffold)"""
     
-    def __init__(self):
+    def __init__(self, model_type: str = "gpt-oss-120b", max_tokens: int = 512):
+        """Initialize Cerebras model.
+
+        Allowed model_type values:
+        - "llama3.1-8b"
+        - "gpt-oss-120b" (default)
+        - "qwen-3-32b"
+        """
+        allowed = {"llama3.1-8b", "gpt-oss-120b", "qwen-3-32b"}
+        if model_type not in allowed:
+            raise ValueError(f"Unsupported Cerebras model_type: {model_type}. Allowed: {sorted(allowed)}")
+
+        self._model_name = model_type
         self._client = None
         self._cerebras_client = None
+        self._max_tokens = max(1, int(max_tokens))
     
     def is_available(self) -> bool:
         """Check if Cerebras is available (placeholder)"""
@@ -32,7 +45,7 @@ class CerebrasModel(BaseOCR):
     
     def get_model_name(self) -> str:
         """Get the name of the OCR model"""
-        return "Cerebras"
+        return f"Cerebras - {self._model_name}"
     
     def _get_cerebras_client(self):
         """Initialize Cerebras client (not implemented)."""
@@ -77,14 +90,14 @@ Return ONLY the JSON response, no additional text or formatting."""
             # Note: Cerebras chat API uses OpenAI-like schema and typically returns text content.
             # If/when image inputs are supported, this will need to be adapted.
             response = client.chat.completions.create(
-                model="gpt-oss-120b",
+                model=self._model_name,
                 messages=[
                     {
                         "role": "user",
                         "content": f"{system_prompt}\n\n{user_prompt}",
                     }
                 ],
-                max_tokens=4000,
+                max_tokens=self._max_tokens,
             )
             
             # Parse the response text from Cerebras
