@@ -574,21 +574,26 @@
         messages.push(thinkingMessage);
         renderMessages();
 
-        // Use a constant hint for now
-        const hintText = `Here's your hint:\n\n**Try looking for patterns in the data and break the problem down into smaller pieces.**`;
+        // Call the API endpoint to get hint
+        const response = await fetch('/api/get_hint');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const hintText = data.hint || 'No hint available at this time.';
 
-        // Replace thinking indicator with actual hint (as user message on right side)
+        // Replace thinking indicator with actual hint (as assistant message)
         const messageIndex = messages.findIndex(msg => msg.id === thinkingId);
         if (messageIndex !== -1) {
           messages[messageIndex] = {
             id: Date.now().toString(),
-            role: 'user',
+            role: 'assistant',
             text: hintText,
             timestamp: new Date()
           };
         }
         renderMessages();
-
       } catch (error) {
         console.error('Error getting hint:', error);
         // Remove thinking indicator and add error message

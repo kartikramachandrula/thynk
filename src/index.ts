@@ -246,22 +246,21 @@ class ExampleMentraOSApp extends AppServer {
     });
 
     // API endpoint for giving hints
-    app.get('/api/give_hint', (req: any, res: any) => {
-      const randomTexts = [
-        "The secret is to always look for patterns in the data.",
-        "Remember that the answer is often simpler than you think.",
-        "Try breaking the problem down into smaller pieces.",
-        "Sometimes the best approach is to work backwards from the solution.",
-        "Don't forget to check your assumptions - they might be wrong.",
-        "The key insight usually comes when you least expect it.",
-        "Consider what would happen if you changed just one variable.",
-        "Look for connections between seemingly unrelated concepts.",
-        "The most elegant solutions are often the most obvious ones.",
-        "When stuck, try explaining the problem to someone else."
-      ];
-      
-      const randomHint = randomTexts[Math.floor(Math.random() * randomTexts.length)];
-      res.json({ hint: randomHint });
+    app.get('/api/get_hint', (req: any, res: any) => {
+      if (!this.displayText) {
+        res.status(404).json({ 
+          success: false,
+          error: 'No hint available at this time',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      res.json({ 
+        success: true,
+        hint: this.displayText,
+        timestamp: new Date().toISOString()
+      });
     });
 
 
