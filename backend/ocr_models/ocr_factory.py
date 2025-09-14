@@ -2,10 +2,7 @@ from .base_ocr import BaseOCR
 from .easyocr_model import EasyOCRModel
 from .google_vision_model import GoogleVisionModel
 from .claude_model import ClaudeModel
-<<<<<<< HEAD
-=======
 from .cerebras_model import CerebrasModel
->>>>>>> c063f0923ed9e45b1267ad401630e9ee29b3b505
 from .jury_model import JuryModel
 from .cerebras_model import CerebrasModel
 
@@ -22,11 +19,8 @@ class OCRFactory:
             return GoogleVisionModel()
         elif model_type.lower() == "claude":
             return ClaudeModel()
-<<<<<<< HEAD
-=======
         elif model_type.lower() == "cerebras":
             return CerebrasModel()
->>>>>>> c063f0923ed9e45b1267ad401630e9ee29b3b505
         elif model_type.lower() == "jury":
             return JuryModel()
         else:
