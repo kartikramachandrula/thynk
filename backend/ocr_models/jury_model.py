@@ -108,10 +108,12 @@ class JuryModel(BaseOCR):
                     "You are a world-class OCR aggregation system. You will be given up to four OCR outputs "
                     "that attempt to read the same scene. Your job is to produce a single, clean, faithful, and concise "
                     "final text that best represents the underlying content. Remove duplicates, resolve minor conflicts, "
-                    "and prefer the clearly correct words. Do not add commentary. Return ONLY the final text."
+                    "and prefer the clearly correct words. If any mathematical expressions or equations appear, ensure they are formatted using MathJAX: use $...$ for inline math and $$...$$ for display equations (e.g., \\frac{a}{b}, \\sqrt{x}, x^{2}, a_{i}). "
+                    "Do not add commentary. Return ONLY the final text."
                 )
                 user_prompt = (
-                    "Aggregate the following four OCR candidate outputs into a single best representation.\n\n"
+                    "Aggregate the following OCR candidate outputs into a single best representation. "
+                    "When writing any equations, use MathJAX formatting as described.\n\n"
                     f"Candidates:\n{numbered}\n\nReturn only the final consolidated text."
                 )
                 resp = client.messages.create(

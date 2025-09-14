@@ -87,10 +87,11 @@ class CerebrasModel(BaseOCR):
             # NOTE: Cerebras chat API does not (yet) support image content blocks; we pass base64 inline.
             system_prompt = (
                 "You are an expert OCR system. You will be given an image encoded as base64 bytes. "
-                "Decode it and transcribe ALL visible text. Return ONLY the extracted text with no additional commentary, labels, or JSON."
+                "Decode it and transcribe ALL visible text. If the text contains mathematical expressions or equations, format them using MathJAX: use $...$ for inline math and $$...$$ for display equations (e.g., \\frac{a}{b}, \\sqrt{x}, superscripts as x^{2}, subscripts as a_{i}). "
+                "Return ONLY the extracted text with no additional commentary, labels, or JSON."
             )
             user_prompt = (
-                "Extract and return only the text from this image (base64 below).\n\n"
+                "Extract and return only the text from this image (base64 below). When writing any equations, use MathJAX formatting as described.\n\n"
                 "IMAGE_BASE64:\n" + image_base64
             )
 
