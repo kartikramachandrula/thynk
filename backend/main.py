@@ -13,6 +13,7 @@ from typing import Dict, Any, List, Optional
 import modal
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from PIL import Image
@@ -52,6 +53,36 @@ load_dotenv()
 # Create FastAPI app
 fastapi_app = FastAPI(title="Rizzoids Backend", version="1.0.0")
 thynk_client = ThynkRedisClient()
+
+# CORS configuration to allow frontend to call backend (handles OPTIONS preflight)
+fastapi_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "*",  # broad allow for dev
+        "null",  # handle file:// or sandboxed contexts
+        "http://localhost",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ],
+    allow_origin_regex=r".*",  # fallback match any origin
+    allow_credentials=False,  # keep False when using '*'
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Generic OPTIONS handler to ensure preflight never 400s even if headers are missing
+@fastapi_app.options("/{rest_of_path:path}")
+async def preflight_handler():
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Max-Age": "86400",
+    }
+    return Response(status_code=200, headers=headers)
 
 # --- Modal Setup ---
 app = modal.App("rizzoids-backend")
