@@ -40,21 +40,25 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  const callBackendHint = async (mode: 'hint' | 'check') => {
+  const callBackendHint = async (mode: 'hint' | 'check', learned: string = '') => {
     try {
-      const response = await fetch('http://localhost:8000/give-hint', {
-        method: 'GET',
+      const response = await fetch('http://localhost:8000/give_hint', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          learned: learned || inputValue || 'Current work context'
+        })
       });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
-      return data.hint || 'No response from server';
+      // The endpoint returns markdown text directly
+      const hintText = await response.text();
+      return hintText || 'No response from server';
     } catch (error) {
       console.error('Error calling backend:', error);
       return mode === 'hint' 
@@ -69,7 +73,7 @@ const ChatInterface = () => {
     let response = '';
     
     if (mode === 'hint' || mode === 'check') {
-      response = await callBackendHint(mode);
+      response = await callBackendHint(mode, userInput);
     } else {
       // Simulate API delay for general responses
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
