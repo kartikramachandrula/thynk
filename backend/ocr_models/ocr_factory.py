@@ -2,6 +2,10 @@ from .base_ocr import BaseOCR
 from .easyocr_model import EasyOCRModel
 from .google_vision_model import GoogleVisionModel
 from .claude_model import ClaudeModel
+<<<<<<< HEAD
+=======
+from .cerebras_model import CerebrasModel
+>>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
 from .jury_model import JuryModel
 
 class OCRFactory:
@@ -17,6 +21,11 @@ class OCRFactory:
             return GoogleVisionModel()
         elif model_type.lower() == "claude":
             return ClaudeModel()
+<<<<<<< HEAD
+=======
+        elif model_type.lower() == "cerebras":
+            return CerebrasModel()
+>>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
         elif model_type.lower() == "jury":
             return JuryModel()
         else:
@@ -48,5 +57,15 @@ class OCRFactory:
             # Put jury first as an aggregate choice
             models = [m for m in models if m != "jury"]
             models.insert(0, "jury")
+        
+        # Check Cerebras availability
+        cerebras_model = CerebrasModel()
+        if cerebras_model.is_available():
+            models.append("cerebras")
+        
+        # Check Jury availability
+        jury_model = JuryModel()
+        if jury_model.is_available():
+            models.append("jury")
         
         return models
