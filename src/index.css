@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Study-focused aesthetic design system */
+
+@layer base {
+  :root {
+    /* Warm, study-friendly background */
+    --background: 250 50% 98%;
+    --foreground: 224 71% 4%;
+
+    /* Elevated card styling */
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+    --card-shadow: 220 13% 91%;
+
+    /* Calming purple-blue study theme */
+    --primary: 263 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 263 70% 45%;
+    --primary-light: 263 50% 95%;
+
+    /* Soft secondary tones */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 9% 46%;
+
+    /* Muted study-friendly tones */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Gentle accent for interactions */
+    --accent: 263 32% 95%;
+    --accent-foreground: 263 70% 50%;
+
+    /* Study input styling */
+    --input: 0 0% 100%;
+    --input-border: 220 13% 91%;
+    --input-focus: 263 70% 50%;
+
+    /* Refined borders */
+    --border: 220 13% 91%;
+    --ring: 263 70% 50%;
+
+    /* Study environment backgrounds */
+    --ai-response: 263 25% 97%;
+    --user-input: 250 50% 97%;
+
+    /* Enhanced shadows for depth */
+    --shadow-soft: 0 1px 3px 0 hsl(220 13% 91% / 0.5);
+    --shadow-elevated: 0 10px 25px -5px hsl(220 13% 91% / 0.5), 0 10px 10px -5px hsl(220 13% 91% / 0.04);
+    --shadow-study: 0 20px 40px -12px hsl(263 70% 50% / 0.08);
+
+    /* Study-optimized gradients */
+    --gradient-study: linear-gradient(135deg, hsl(263 70% 50% / 0.05), hsl(220 70% 50% / 0.02));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(250 50% 99%));
+
+    /* Typography for better reading */
+    --font-study: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Keep light mode for Google Docs aesthetic */
+    --background: 0 0% 99%;
+    --foreground: 0 0% 13%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-study);
+    line-height: 1.7;
+    background: var(--gradient-study);
+    min-height: 100vh;
+  }
+
+  /* Enhanced study typography */
+  .study-title {
+    font-size: 2.25rem;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.025em;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(220 70% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .study-subtitle {
+    color: hsl(var(--muted-foreground));
+    font-size: 1.125rem;
+    font-weight: 400;
+    margin-bottom: 2rem;
+  }
+
+  /* Enhanced AI response styling */
+  .ai-response {
+    background: hsl(var(--ai-response));
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    border-left: 4px solid hsl(var(--primary));
+    box-shadow: var(--shadow-soft);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ai-response::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-study);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .ai-response > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Enhanced user input styling */
+  .user-input {
+    background: hsl(var(--user-input));
+    border-radius: 1rem;
+    padding: 1.25rem;
+    margin: 1rem 0;
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-soft);
+    transition: all 0.3s ease;
+  }
+
+  .user-input:hover {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* Study-optimized document container */
+  .document-container {
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-study);
+    border-radius: 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
+    min-height: 700px;
+    border: 1px solid hsl(var(--border));
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .document-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(220 70% 50%), hsl(var(--primary)));
+  }
+
+  /* Study session indicator */
+  .study-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: hsl(var(--primary-light));
+    color: hsl(var(--primary));
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+
+  /* Enhanced animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+  }
+
+  @keyframes pulse-gentle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+
+  .float-animation {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .pulse-gentle {
+    animation: pulse-gentle 3s ease-in-out infinite;
+  }
+}

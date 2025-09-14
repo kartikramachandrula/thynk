@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Click Hint Chat</title>
+  <title>Step by Step</title>
   <style>
     * {
       margin: 0;
@@ -341,7 +341,7 @@
     <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
     </svg>
-    <h1>Click Hint Chat</h1>
+    <h1>Step by Step</h1>
   </header>
 
   <!-- Chat Messages Area -->
@@ -574,8 +574,9 @@
         messages.push(thinkingMessage);
         renderMessages();
 
-        // Call the API endpoint to get hint
-        const response = await fetch('/api/get_hint');
+        // Call the FastAPI backend endpoint to get hint
+        const backendUrl = 'http://localhost:8000'; // FastAPI backend URL
+        const response = await fetch(`${backendUrl}/give-hint`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
