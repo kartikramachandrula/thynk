@@ -195,12 +195,39 @@ async def give_hint(learned_context: str, user_question: str = "") -> str:
         Markdown-formatted hint string for display on frontend
     """
     try:
-        # Get current context for the user
-        context_data = await get_context()
-        stored_context = context_data.get("context", "")
+        # Get weighted context including lecture transcriptions with exponential decay
+        weighted_context = await redis_client.get_weighted_context(
+            user_id="default", 
+            max_entries=50, 
+            include_lectures=True, 
+            lecture_base_weight=0.3,
+            decay_factor=0.1
+        )
+        
+        # Build context string with exponential decay weights for the AI
+        context_parts = []
+        for ctx in weighted_context:
+            # Use exponential decay weight to determine priority
+            if ctx['weight'] >= 0.8:
+                weight_indicator = "[CRITICAL]"
+            elif ctx['weight'] >= 0.5:
+                weight_indicator = "[HIGH PRIORITY]"
+            elif ctx['weight'] >= 0.2:
+                weight_indicator = "[MEDIUM]"
+            else:
+                weight_indicator = "[BACKGROUND]"
+            
+            source_type = ctx.get('source', 'unknown')
+            weight_score = f"w={ctx['weight']:.2f}"
+            context_parts.append(f"{weight_indicator} ({source_type}, {weight_score}): {ctx['content']}")
+        
+        stored_context = "\n\n".join(context_parts) if context_parts else "No previous context available."
+        
+        # Add context summary for the AI
+        context_summary = f"\n\n[CONTEXT SUMMARY: {len(weighted_context)} entries retrieved with exponential decay weighting]"
         
         # Combine stored context with any immediate context
-        full_context = f"{stored_context}\n\nCurrent context: {learned_context}" if learned_context else stored_context
+        full_context = f"{stored_context}{context_summary}\n\n[CURRENT SESSION]: {learned_context}" if learned_context else f"{stored_context}{context_summary}"
         
         # Build the hint generation prompt
         hint_prompt = f"""You are Thynk, an encouraging AI tutor that helps students learn math step-by-step. Your motto is "Always Ask Y" - meaning you help students discover answers through guided questions rather than giving direct solutions.
