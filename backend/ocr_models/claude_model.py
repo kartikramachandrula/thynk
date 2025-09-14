@@ -66,9 +66,10 @@ class ClaudeModel(BaseOCR):
             # Prompts for plain text OCR output
             system_prompt = (
                 "You are an expert OCR system. Extract all visible text from the image. "
+                "If the text contains mathematical expressions or equations, format them using MathJAX: use $...$ for inline math and $$...$$ for display equations (e.g., \\frac{a}{b}, \\sqrt{x}, superscripts as x^{2}, subscripts as a_{i}). "
                 "Return ONLY the extracted text with no additional commentary, labels, or JSON."
             )
-            user_prompt = "Extract and return only the text from this image."
+            user_prompt = "Extract and return only the text from this image. When writing any equations, use MathJAX formatting as described."
 
             # Claude API call
             response = client.messages.create(

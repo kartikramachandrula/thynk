@@ -2,11 +2,8 @@ from .base_ocr import BaseOCR
 from .easyocr_model import EasyOCRModel
 from .google_vision_model import GoogleVisionModel
 from .claude_model import ClaudeModel
-<<<<<<< HEAD
-=======
-from .cerebras_model import CerebrasModel
->>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
 from .jury_model import JuryModel
+from .cerebras_model import CerebrasModel
 
 class OCRFactory:
     """Factory class to create OCR model instances"""
@@ -21,11 +18,6 @@ class OCRFactory:
             return GoogleVisionModel()
         elif model_type.lower() == "claude":
             return ClaudeModel()
-<<<<<<< HEAD
-=======
-        elif model_type.lower() == "cerebras":
-            return CerebrasModel()
->>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
         elif model_type.lower() == "jury":
             return JuryModel()
         else:

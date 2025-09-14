@@ -18,7 +18,6 @@ from PIL import Image
 import numpy as np
 from dotenv import load_dotenv
 
-<<<<<<< HEAD
 # Import OCR models directly
 from ocr_models.base_ocr import OCRRequest, OCRResponse, SimpleOCRResponse
 from ocr_models.ocr_factory import OCRFactory
@@ -30,12 +29,8 @@ try:
 except ImportError:
     MODAL_AVAILABLE = False
 
-=======
-# Load environment variables
->>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
 load_dotenv()
 
-<<<<<<< HEAD
 # Create FastAPI app
 fastapi_app = FastAPI(title="Rizzoids Backend", version="1.0.0")
 
@@ -52,13 +47,6 @@ image = modal.Image.debian_slim(python_version="3.12").pip_install(
     "anthropic==0.25.0",
     "redis==5.0.1",
     "upstash-redis==0.15.0",
-=======
-# Initialize FastAPI app
-fastapi_app = FastAPI(
-    title="Rizzoids Smart Glasses API",
-    description="OCR and AI analysis for smart glasses",
-    version="1.0.0"
->>>>>>> ccde0e5a1eee18ee3990acf259c0cd5d33779d96
 )
 
 # Add CORS middleware
@@ -143,7 +131,7 @@ def context_compression(input_json: Dict[str, Any]) -> None:
     if not learned_text:
         return
     
-    prompt = f"""You are analyzing content from smart glasses. Extract ONLY relevant math problems, concepts, or work shown. IGNORE all other content. If no math content is found, respond with 'NO_RELEVANT_CONTENT'.
+    prompt = f"""You are analyzing content from smart glasses. Extract ONLY relevant math problems, concepts, or work shown. IGNORE all other content. If no math content is found, respond with 'NO_RELEVANT_CONTENT'. If you include any mathematical expressions or equations, format them using MathJAX: use $...$ for inline math and $$...$$ for display equations (e.g., \\frac{a}{b}, \\sqrt{x}, x^{2}, a_{i}).
 
 Content to analyze:
 ---
@@ -210,17 +198,18 @@ async def context_compression_endpoint(request: Request):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@fastapi_app.post("/give_hint")
-async def give_hint(request: Request):
-    """Generate tutoring hints based on stored context and current situation"""
-    try:
-        data = await request.json()
-        current_learned = data.get("learned", "")
-        stored_context = get_context()["context"]
+# @fastapi_app.post("/give_hint")
+# async def give_hint(request: Request):
+#     """Generate tutoring hints based on stored context and current situation"""
+#     try:
+#         data = await request.json()
+#         current_learned = data.get("learned", "")
+#         stored_context = get_context()["context"]
         
-        prompt = f"""You are a friendly math tutor. Based on the stored context and the student's current situation, provide a helpful hint for the next step in markdown format.
+#         prompt = f"You are a friendly math tutor. Based on the stored context and the student's current situation, provide a helpful hint for the next step in markdown format."
 
-<<<<<<< HEAD
+_ocr_model = None
+
 def get_ocr_model():
     """Get or initialize OCR model (lazy loading)"""
     global _ocr_model
@@ -266,101 +255,15 @@ async def analyze_photo(request: OCRRequest):
     result: OCRResponse = await ocr_model.extract_text_from_image(request.image_base64)
     print(result.full_text)
     return SimpleOCRResponse(full_text=result.full_text, success=result.success)
-=======
-STORED CONTEXT:
-{stored_context}
 
-CURRENT SITUATION:
-{current_learned}"""
-        
-        messages = [{"role": "user", "content": prompt}]
-        hint_response = call_claude_api(messages)
-        return Response(hint_response, media_type="text/markdown; charset=utf-8")
-    except Exception as e:
-        return Response(f"Error generating hint: {str(e)}", status_code=500)
+# Text to analyze: {request.text}
+# Context: {request.context or 'No additional context'}
 
-@fastapi_app.get("/context_status")
-async def context_status():
-    """Debug endpoint to check stored context"""
-    try:
-        context_data = get_context()
-        return {"status": "success", "total_entries": context_data["entries"], "context_preview": context_data["context"][:500] + "..."}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+# Please provide:
+# 1. A brief analysis of what this text contains
+# 2. 3-5 actionable suggestions or insights
+# 3. Your confidence level (0-1)
 
-@fastapi_app.post("/ocr", response_model=OCRResponse)
-async def perform_ocr(request: OCRRequest):
-    """Extract text from image using OCR"""
-    start_time = time.time()
-    
-    try:
-        # Decode base64 image
-        image_data = base64.b64decode(request.image_base64)
-        
-        # Convert to PIL Image
-        pil_image = Image.open(io.BytesIO(image_data))
-        
-        # Convert to RGB if necessary
-        if pil_image.mode != 'RGB':
-            pil_image = pil_image.convert('RGB')
-        
-        # Convert PIL image to numpy array for EasyOCR
-        image_array = np.array(pil_image)
-        
-        # Get OCR reader
-        reader = get_ocr_reader()
-        
-        # Perform text detection
-        results = reader.readtext(image_array)
-        
-        # Extract text and calculate average confidence
-        detected_texts = []
-        confidences = []
-        
-        for (bbox, text, confidence) in results:
-            if confidence > 0.3:  # Filter low confidence results
-                detected_texts.append(text)
-                confidences.append(confidence)
-        
-        # Combine all detected text
-        full_text = ' '.join(detected_texts) if detected_texts else ""
-        
-        # Calculate average confidence
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-        
-        processing_time = time.time() - start_time
-        
-        return OCRResponse(
-            text=full_text,
-            confidence=avg_confidence,
-            success=True,
-            processing_time=processing_time
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"OCR processing failed: {str(e)}"
-        )
-
-@fastapi_app.post("/analyze", response_model=AnalysisResponse)
-async def analyze_text(request: AnalysisRequest):
-    """Analyze extracted text using Claude AI"""
-    try:
-        client = get_claude_client()
-        
-        prompt = f"""You are an AI assistant for smart glasses. Analyze the following text and provide helpful insights.
->>>>>>> c95ce6144562ae9b5ad35b4e175d1b198e38d974
-
-Text to analyze: {request.text}
-Context: {request.context or 'No additional context'}
-
-Please provide:
-1. A brief analysis of what this text contains
-2. 3-5 actionable suggestions or insights
-3. Your confidence level (0-1)
-
-<<<<<<< HEAD
 # Modal deployment setup (only if Modal is available)
 if MODAL_AVAILABLE:
     # Create Modal app (use 'app' as the variable name for Modal CLI)
@@ -390,39 +293,36 @@ if MODAL_AVAILABLE:
     @modal.asgi_app(label="rizzoids-api")
     def modal_fastapi_app():
         return fastapi_app
-=======
-Format your response as JSON with 'analysis', 'suggestions' (array), and 'confidence' fields."""
->>>>>>> ccde0e5a1eee18ee3990acf259c0cd5d33779d96
 
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1000,
-            messages=[{"role": "user", "content": prompt}]
-        )
+    #     response = client.messages.create(
+    #         model="claude-3-5-sonnet-20241022",
+    #         max_tokens=1000,
+    #         messages=[{"role": "user", "content": prompt}]
+    #     )
         
-        # Parse Claude's response
-        try:
-            result = json.loads(response.content[0].text)
-            return AnalysisResponse(
-                analysis=result.get("analysis", "Analysis completed"),
-                suggestions=result.get("suggestions", []),
-                confidence=result.get("confidence", 0.8),
-                success=True
-            )
-        except json.JSONDecodeError:
-            # Fallback if Claude doesn't return JSON
-            return AnalysisResponse(
-                analysis=response.content[0].text,
-                suggestions=["Review the extracted text", "Consider the context"],
-                confidence=0.7,
-                success=True
-            )
+    #     # Parse Claude's response
+    #     try:
+    #         result = json.loads(response.content[0].text)
+    #         return AnalysisResponse(
+    #             analysis=result.get("analysis", "Analysis completed"),
+    #             suggestions=result.get("suggestions", []),
+    #             confidence=result.get("confidence", 0.8),
+    #             success=True
+    #         )
+    #     except json.JSONDecodeError:
+    #         # Fallback if Claude doesn't return JSON
+    #         return AnalysisResponse(
+    #             analysis=response.content[0].text,
+    #             suggestions=["Review the extracted text", "Consider the context"],
+    #             confidence=0.7,
+    #             success=True
+    #         )
         
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Analysis failed: {str(e)}"
-        )
+    # except Exception as e:
+    #     raise HTTPException(
+    #         status_code=500,
+    #         detail=f"Analysis failed: {str(e)}"
+    #     )
 
 @fastapi_app.post("/process-glasses-image", response_model=Dict[str, Any])
 async def process_glasses_image(request: OCRRequest):
