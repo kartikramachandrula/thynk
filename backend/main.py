@@ -95,13 +95,18 @@ if MODAL_AVAILABLE:
     # Create Modal app (use 'app' as the variable name for Modal CLI)
     app = modal.App("rizzoids-backend-personal")
     
-    # Define the image with FastAPI and Claude
+    # Define the image with FastAPI and all runtime dependencies
     image = modal.Image.debian_slim(python_version="3.12").pip_install([
         "fastapi==0.104.1",
         "uvicorn[standard]==0.24.0",
         "python-dotenv==1.0.0",
+        "pydantic==2.11.9",
+        "pillow==10.1.0",
+        "numpy",
+        "easyocr",
+        "google-cloud-vision",
         "anthropic==0.34.0",
-        "pillow==10.1.0"
+        "cerebras-cloud-sdk==1.50.1",
     ])
     
     # Modal deployment using the same FastAPI app
