@@ -14,8 +14,8 @@ from redis_client import redis_client
 
 load_dotenv()
 
-# Initialize Anthropic client
-anthropic_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_KEY"))
+# Initialize Anthropic async client
+anthropic_client = anthropic.AsyncAnthropic(api_key=os.getenv("CLAUDE_KEY"))
 
 # Store previous content for comparison
 _previous_content: Dict[str, str] = {}
@@ -98,7 +98,7 @@ Content to analyze:
 Provide a concise summary (2-3 sentences max) of the most educationally relevant information, or respond with "No relevant educational content found" if there's nothing useful for tutoring purposes."""
 
         try:
-            response = anthropic_client.messages.create(
+            response = await anthropic_client.messages.create(
                 model="claude-opus-4-1-20250805",
                 max_tokens=150,
                 temperature=0.3,
@@ -221,7 +221,7 @@ Learning Context:
 Provide your hint in markdown format, keeping it concise but helpful (2-4 sentences max):"""
 
         try:
-            response = anthropic_client.messages.create(
+            response = await anthropic_client.messages.create(
                 model="claude-opus-4-1-20250805",
                 max_tokens=300,
                 temperature=0.7,

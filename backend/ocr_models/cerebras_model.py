@@ -8,6 +8,7 @@ load_dotenv()
 from cerebras.cloud.sdk import Cerebras
 
 import json
+import asyncio
 
 from .base_ocr import BaseOCR, OCRResponse, SimpleOCRResponse, TextPhrase
 
@@ -98,7 +99,8 @@ class CerebrasModel(BaseOCR):
             # Make API call to Cerebras with text-only message (model: gpt-oss-120b)
             # Note: Cerebras chat API uses OpenAI-like schema and typically returns text content.
             # If/when image inputs are supported, this will need to be adapted.
-            response = client.chat.completions.create(
+            response = await asyncio.to_thread(
+                client.chat.completions.create,
                 model=self._model_name,
                 messages=[
                     {

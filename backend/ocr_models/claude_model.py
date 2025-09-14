@@ -32,7 +32,7 @@ class ClaudeModel(BaseOCR):
         return "Claude 4 Sonnet"
     
     def _get_claude_client(self):
-        """Get or initialize Claude client (lazy loading)"""
+        """Get or initialize Claude async client (lazy loading)"""
         if self._claude_client is None:
             if not self.is_available():
                 raise HTTPException(
@@ -40,7 +40,8 @@ class ClaudeModel(BaseOCR):
                     detail="Claude API not available. Please set CLAUDE_KEY environment variable."
                 )
             claude_api_key = os.getenv("CLAUDE_KEY")
-            self._claude_client = anthropic.Anthropic(api_key=claude_api_key)
+            # Use the async Anthropic client
+            self._claude_client = anthropic.AsyncAnthropic(api_key=claude_api_key)
         return self._claude_client
     
     async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
@@ -71,8 +72,8 @@ class ClaudeModel(BaseOCR):
             )
             user_prompt = "Extract and return only the text from this image. When writing any equations, use MathJAX formatting as described."
 
-            # Claude API call
-            response = client.messages.create(
+            # Claude API call (async)
+            response = await client.messages.create(
                 model="claude-opus-4-1-20250805",
                 max_tokens=4000,
                 system=system_prompt,

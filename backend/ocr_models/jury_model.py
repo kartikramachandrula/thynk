@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import HTTPException
 import os
 
@@ -52,39 +53,45 @@ class JuryModel(BaseOCR):
         return None
 
     async def extract_text_from_image(self, image_base64: str) -> SimpleOCRResponse:
-        """Run multiple OCR backends and return up to 4 outputs as phrases."""
+        """Run multiple OCR backends concurrently and return up to 4 outputs as phrases."""
         texts: list[str] = []
 
-        # 1) Run Claude (if available)
+        tasks = []
+
+        # Prepare Claude task
         try:
             claude = ClaudeModel()
             if claude.is_available():
-                res = await claude.extract_text_from_image(image_base64)
-                if res and res.full_text:
-                    candidate = res.full_text.strip()
-                    print("Jury candidate [Claude]:", candidate)
-                    texts.append(candidate)
+                tasks.append(claude.extract_text_from_image(image_base64))
         except Exception as e:
-            # Log and continue with others
-            print(f"Jury: Claude failed: {e}")
+            print(f"Jury: Claude init/availability check failed: {e}")
 
-        # 2) Run Cerebras variants (if available)
+        # Prepare Cerebras tasks
         cerebras_variants = [
             "gpt-oss-120b",
         ]
         for model_type in cerebras_variants:
-            if len(texts) >= 4:
-                break
             try:
                 cerebras = CerebrasModel(model_type=model_type, max_tokens=self._cerebras_max_tokens)
                 if cerebras.is_available():
-                    res = await cerebras.extract_text_from_image(image_base64)
+                    tasks.append(cerebras.extract_text_from_image(image_base64))
+            except Exception as e:
+                print(f"Jury: Cerebras ({model_type}) init/availability check failed: {e}")
+
+        # Run all tasks concurrently
+        if tasks:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for idx, res in enumerate(results):
+                if isinstance(res, Exception):
+                    print(f"Jury: backend task {idx} failed: {res}")
+                    continue
+                try:
                     if res and res.full_text:
                         candidate = res.full_text.strip()
-                        print(f"Jury candidate [Cerebras::{model_type}]:", candidate)
+                        print(f"Jury candidate [{idx}]:", candidate)
                         texts.append(candidate)
-            except Exception as e:
-                print(f"Jury: Cerebras ({model_type}) failed: {e}")
+                except Exception as e:
+                    print(f"Jury: error processing result {idx}: {e}")
 
         # Keep only first 4 outputs
         texts = [t for t in texts if t]
@@ -102,7 +109,7 @@ class JuryModel(BaseOCR):
         aggregated_text = None
         if _ANTHROPIC_OK and os.getenv("CLAUDE_KEY"):
             try:
-                client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_KEY"))
+                client = anthropic.AsyncAnthropic(api_key=os.getenv("CLAUDE_KEY"))
                 numbered = "\n".join([f"{i+1}. {t}" for i, t in enumerate(texts)])
                 system_prompt = (
                     "You are a world-class OCR aggregation system. You will be given up to four OCR outputs "
@@ -116,7 +123,7 @@ class JuryModel(BaseOCR):
                     "When writing any equations, use MathJAX formatting as described.\n\n"
                     f"Candidates:\n{numbered}\n\nReturn only the final consolidated text."
                 )
-                resp = client.messages.create(
+                resp = await client.messages.create(
                     model="claude-sonnet-4-20250514",
                     max_tokens=512,
                     system=system_prompt,
