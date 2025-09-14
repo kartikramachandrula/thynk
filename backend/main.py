@@ -1,12 +1,31 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-import os
-from dotenv import load_dotenv
+# Created by Melody Yu
+# Created on Sep 13, 2025
 
-# Import OCR models directly
-from ocr_models.base_ocr import OCRRequest, OCRResponse
-from ocr_models.ocr_factory import OCRFactory
+import os
+import json
+import time
+from datetime import datetime, timezone
+from typing import Dict, Any, List
+
+import modal
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
+from dotenv import load_dotenv
+import base64
+from pydantic import BaseModel
+from typing import Optional
+import io
+from PIL import Image
+import numpy as np
+
+
+# EasyOCR imports
+try:
+    import easyocr
+    EASYOCR_AVAILABLE = True
+except ImportError:
+    EASYOCR_AVAILABLE = False
+    print("EasyOCR not available. Install easyocr to use OCR.")
 
 # Modal imports (only if Modal is available)
 try:
@@ -17,16 +36,19 @@ except ImportError:
 
 load_dotenv()
 
-# Create FastAPI app
-fastapi_app = FastAPI(title="Rizzoids Backend", version="1.0.0")
-
-# CORS middleware
-fastapi_app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# --- Modal Setup ---
+app = modal.App("rizzoids-backend")
+image = modal.Image.debian_slim(python_version="3.12").pip_install(
+    "fastapi==0.104.1",
+    "uvicorn[standard]==0.24.0",
+    "python-dotenv==1.0.0",
+    "modal==0.64.0",
+    "easyocr==1.7.0",
+    "pillow==10.1.0",
+    "pydantic==2.5.0",
+    "anthropic==0.25.0",
+    "redis==5.0.1",
+    "upstash-redis==0.15.0",
 )
 
 @fastapi_app.get("/")
@@ -37,65 +59,93 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "rizzoids-backend"}
 
-@fastapi_app.get("/ocr/models")
-async def get_available_ocr_models():
-    """Get list of available OCR models"""
-    available_models = OCRFactory.get_available_models()
-    return {"available_models": available_models}
+# Pydantic models
+class OCRRequest(BaseModel):
+    image_base64: str
+    
+class OCRResponse(BaseModel):
+    text: str
+    confidence: Optional[float] = None
+    success: bool
 
-# Initialize OCR model using factory
-_ocr_model = None
+# Initialize EasyOCR reader (lazy loading)
+_ocr_reader = None
 
-def get_ocr_model():
-    """Get or initialize OCR model (lazy loading)"""
-    global _ocr_model
-    if _ocr_model is None:
-        # Get available models and use the first available one
-        available_models = OCRFactory.get_available_models()
-        if not available_models:
+def get_ocr_reader():
+    """Get or initialize EasyOCR reader"""
+    global _ocr_reader
+    if _ocr_reader is None:
+        if not EASYOCR_AVAILABLE:
             raise HTTPException(
-                status_code=500,
-                detail="No OCR models are available. Please check your environment configuration."
+                status_code=500, 
+                detail="EasyOCR not available. Please install easyocr."
             )
-        
-        # Prefer Claude, then EasyOCR, then Google Vision
-        preferred_order = ["claude", "easyocr", "google_vision"]
-        selected_model = None
-        
-        for preferred in preferred_order:
-            if preferred in available_models:
-                selected_model = preferred
-                break
-        
-        # Fallback to first available if none of the preferred models are available
-        if selected_model is None:
-            selected_model = available_models[0]
-        
-        print(f"Using OCR model: {selected_model}")
-        _ocr_model = OCRFactory.create_ocr_model(selected_model)
-    return _ocr_model
+        # Initialize with English and common languages
+        _ocr_reader = easyocr.Reader(['en'])
+    return _ocr_reader
 
-# OCR endpoints
+# OCR Service using EasyOCR
+async def extract_text_from_image(image_base64: str) -> OCRResponse:
+    """Extract text from base64 encoded image using EasyOCR"""
+    
+    try:
+        # Decode base64 image
+        image_data = base64.b64decode(image_base64)
+        
+        # Convert to PIL Image
+        pil_image = Image.open(io.BytesIO(image_data))
+        
+        # Convert PIL image to numpy array for EasyOCR
+        image_array = np.array(pil_image)
+        
+        # Get OCR reader
+        reader = get_ocr_reader()
+        
+        # Perform text detection
+        results = reader.readtext(image_array)
+        
+        # Extract text and calculate average confidence
+        detected_texts = []
+        confidences = []
+        
+        for (bbox, text, confidence) in results:
+            detected_texts.append(text)
+            confidences.append(confidence)
+        
+        # Combine all detected text
+        full_text = ' '.join(detected_texts) if detected_texts else ""
+        
+        # Calculate average confidence
+        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        
+        return OCRResponse(
+            text=full_text,
+            confidence=avg_confidence,
+            success=True
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"OCR processing failed: {str(e)}"
+        )
+
 @fastapi_app.post("/ocr", response_model=OCRResponse)
 async def perform_ocr(request: OCRRequest):
     """Extract text from image using OCR"""
-    ocr_model = get_ocr_model()
-    return await ocr_model.extract_text_from_image(request.image_base64)
+    return await extract_text_from_image(request.image_base64)
 
 @fastapi_app.post("/analyze-photo", response_model=OCRResponse)
 async def analyze_photo(request: OCRRequest):
     """Analyze photo from Mentra glasses and extract text using OCR"""
-    ocr_model = get_ocr_model()
-    result = await ocr_model.extract_text_from_image(request.image_base64)
-    print(result)
-    return result
+    return await extract_text_from_image(request.image_base64)
 
 # Modal deployment setup (only if Modal is available)
 if MODAL_AVAILABLE:
     # Create Modal app (use 'app' as the variable name for Modal CLI)
     app = modal.App("rizzoids-backend-personal")
     
-    # Define the image with FastAPI and all runtime dependencies
+    # Define the image with FastAPI and EasyOCR
     image = modal.Image.debian_slim(python_version="3.12").pip_install([
         "fastapi==0.104.1",
         "uvicorn[standard]==0.24.0",
@@ -105,8 +155,9 @@ if MODAL_AVAILABLE:
         "numpy",
         "easyocr",
         "google-cloud-vision",
-        "anthropic==0.34.0",
-        "cerebras-cloud-sdk==1.50.1",
+        "easyocr==1.7.0",
+        "cerebras-cloud-sdk==1.50.1",,
+        "numpy"
     ])
     
     # Modal deployment using the same FastAPI app

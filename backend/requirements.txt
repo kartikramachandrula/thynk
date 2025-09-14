@@ -3,9 +3,7 @@ uvicorn[standard]==0.24.0
 python-dotenv==1.0.0
 pydantic==2.11.9
 pillow==10.1.0
-numpy
-modal
-easyocr
-google-cloud-vision
-anthropic==0.34.0
-cerebras-cloud-sdk==1.50.1
+pydantic==2.5.0
+anthropic==0.25.0
+redis==5.0.1
+upstash-redis==0.15.0
