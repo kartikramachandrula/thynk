@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, HelpCircle, BookOpen, Sparkles, Bot, Upload, Paperclip } from 'lucide-react';
+import { Send, HelpCircle, BookOpen, Sparkles, Bot, Upload, Paperclip, Play, Pause, Square, Timer } from 'lucide-react';
 // import { useToast } from '@/hooks/use-toast';
 import brainIllustration from '@/assets/brain-illustration.jpg';
 import studyDesk from '@/assets/study-desk.jpg';
@@ -19,8 +19,14 @@ const ChatInterface = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [timerMinutes, setTimerMinutes] = useState<number>(25);
+  const [timerSeconds, setTimerSeconds] = useState<number>(0);
+  const [totalSeconds, setTotalSeconds] = useState<number>(0);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [timerCompleted, setTimerCompleted] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // const { toast } = useToast();
 
   const scrollToBottom = () => {
@@ -30,6 +36,65 @@ const ChatInterface = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Timer functions
+  const formatTime = (totalSecs: number): string => {
+    const minutes = Math.floor(totalSecs / 60);
+    const seconds = totalSecs % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const startTimer = () => {
+    if (!isTimerRunning && timerMinutes > 0) {
+      setIsTimerRunning(true);
+      setTimerCompleted(false);
+      const totalSecs = timerMinutes * 60;
+      setTotalSeconds(totalSecs);
+      setTimerSeconds(totalSecs);
+      
+      timerIntervalRef.current = setInterval(() => {
+        setTimerSeconds(prev => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            setTimerCompleted(true);
+            if (timerIntervalRef.current) {
+              clearInterval(timerIntervalRef.current);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const pauseTimer = () => {
+    setIsTimerRunning(false);
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  };
+
+  const resetTimer = () => {
+    setIsTimerRunning(false);
+    setTimerCompleted(false);
+    setTimerSeconds(0);
+    setTotalSeconds(0);
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, []);
 
   const addMessage = (content: string, type: 'user' | 'ai') => {
     const newMessage: Message = {
@@ -128,6 +193,97 @@ const ChatInterface = () => {
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80')` }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-purple-900/80 via-indigo-900/70 to-violet-900/80 backdrop-blur-sm"></div>
+          
+          {/* Timer Section in top left corner - compact */}
+          <div className="absolute top-24 left-4 z-20">
+            <div className="bg-white/95 backdrop-blur-sm rounded-lg p-3 border border-gray-200 shadow-sm min-w-[220px]">
+              <div className="flex items-center gap-2 mb-2">
+                <Timer className="w-4 h-4 text-purple-600" />
+                <span className="text-gray-800 font-medium text-sm">Study Timer</span>
+              </div>
+              
+              {/* Timer Input */}
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={timerMinutes}
+                  onChange={(e) => setTimerMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                  disabled={isTimerRunning}
+                  className="w-12 h-6 text-xs text-center border-purple-200 focus:border-purple-400"
+                  placeholder="25"
+                />
+                <span className="text-gray-700 text-xs">min</span>
+              </div>
+              
+              {/* Progress Bar */}
+              {totalSeconds > 0 && (
+                <div className="mb-2">
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div 
+                      className="bg-gradient-to-r from-green-500 to-blue-600 h-1.5 rounded-full transition-all duration-1000"
+                      style={{ 
+                        width: `${((totalSeconds - timerSeconds) / totalSeconds) * 100}%` 
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-600 mt-1">
+                    <span>{formatTime(totalSeconds - timerSeconds)}</span>
+                    <span>{formatTime(timerSeconds)}</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Timer Display */}
+              <div className="text-center mb-2">
+                <div className="text-lg font-mono font-bold text-gray-900">
+                  {timerSeconds > 0 ? formatTime(timerSeconds) : formatTime(timerMinutes * 60)}
+                </div>
+                {timerCompleted && (
+                  <div className="text-green-600 text-xs font-medium animate-pulse">
+                    Time's up! 🎉
+                  </div>
+                )}
+              </div>
+              
+              {/* Timer Controls */}
+              <div className="flex gap-1 justify-center">
+                {!isTimerRunning ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={startTimer}
+                    disabled={timerMinutes <= 0}
+                    className="h-6 px-2 text-xs border-purple-200 hover:bg-purple-50 text-gray-700"
+                  >
+                    <Play className="w-3 h-3 mr-1" />
+                    Start
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={pauseTimer}
+                    className="h-6 px-2 text-xs border-purple-200 hover:bg-purple-50 text-gray-700"
+                  >
+                    <Pause className="w-3 h-3 mr-1" />
+                    Pause
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetTimer}
+                  className="h-6 px-2 text-xs border-purple-200 hover:bg-purple-50 text-gray-700"
+                >
+                  <Square className="w-3 h-3 mr-1" />
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </div>
+          
           <div className="relative z-10 flex items-center justify-between px-8">
             {/* Left side decorative image */}
             <div className="flex items-center">
@@ -159,6 +315,7 @@ const ChatInterface = () => {
             </div>
           </div>
         </div>
+
 
         {/* Messages Area - Takes remaining space */}
         <div className="flex-1 overflow-y-auto p-4">
