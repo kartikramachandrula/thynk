@@ -18,7 +18,7 @@ except ImportError:
     print("Anthropic not available. Install anthropic to use Claude OCR.")
 
 class ClaudeModel(BaseOCR):
-    """Claude 3.5 Haiku implementation of the OCR interface"""
+    """Claude 4 Sonnet implementation of the OCR interface"""
     
     def __init__(self):
         self._claude_client = None
@@ -29,7 +29,7 @@ class ClaudeModel(BaseOCR):
     
     def get_model_name(self) -> str:
         """Get the name of the OCR model"""
-        return "Claude 3.5 Haiku"
+        return "Claude 4 Sonnet"
     
     def _get_claude_client(self):
         """Get or initialize Claude client (lazy loading)"""
@@ -44,7 +44,7 @@ class ClaudeModel(BaseOCR):
         return self._claude_client
     
     async def extract_text_from_image(self, image_base64: str) -> OCRResponse:
-        """Extract text from base64 encoded image using Claude 3.5 Haiku"""
+        """Extract text from base64 encoded image using Claude 4 Sonnet"""
         
         try:
             # Get Claude client
@@ -95,28 +95,17 @@ class ClaudeModel(BaseOCR):
             
             # Create structured prompt for OCR
             system_prompt = """You are an expert OCR system. Extract all visible text from the image and return it as structured JSON.
-            
-For each piece of text you detect, provide:
-- The exact text content
-- A confidence score from 0.0 to 1.0 (where 1.0 is completely confident)
+
+For each piece of text you detect, provide the exact text content.
 
 Be thorough and detect all text, including small text, watermarks, and text in different orientations.
-Return only valid JSON that matches the required schema."""
+Return ONLY the JSON response, no additional text or formatting."""
             
             user_prompt = "Please extract all text from this image and return the structured JSON response."
-            
-            # Define a tool for structured output; the model must call this tool with valid JSON
-            tools = [
-                {
-                    "name": "return_ocr",
-                    "description": "Return the OCR result as structured JSON with phrases and confidences.",
-                    "input_schema": json_schema,
-                }
-            ]
 
-            # Make API call to Claude with tool-use to enforce schema
+            # Make API call to Claude with vanilla text generation
             response = client.messages.create(
-                model="claude-3-5-haiku-20241022",
+                model="claude-4-sonnet",
                 max_tokens=4000,
                 system=system_prompt,
                 messages=[
@@ -134,47 +123,32 @@ Return only valid JSON that matches the required schema."""
                             },
                         ],
                     }
-                ],
-                tools=tools,
-                tool_choice={"type": "tool", "name": "return_ocr"},
-                extra_headers={
-                    "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15"
-                }
+                ]
             )
             
-            # Parse the response: prefer tool_use output
-            parsed_response: Dict[str, Any] = {}
-            tool_use_found = False
+            # Parse the response from text blocks
+            response_text_parts: List[str] = []
             for block in response.content:
-                if getattr(block, "type", None) == "tool_use" and getattr(block, "name", "") == "return_ocr":
-                    # Anthropic SDK exposes tool input as `input`
-                    parsed_response = dict(block.input) if hasattr(block, "input") else {}
-                    tool_use_found = True
-                    break
+                if getattr(block, "type", None) == "text":
+                    response_text_parts.append(block.text)
+            response_text = "\n".join([p for p in response_text_parts if p]).strip()
 
-            if not tool_use_found:
-                # Fallback to JSON parsing from text blocks
-                response_text_parts: List[str] = []
-                for block in response.content:
-                    if getattr(block, "type", None) == "text":
-                        response_text_parts.append(block.text)
-                response_text = "\n".join([p for p in response_text_parts if p]).strip()
+            # Extract JSON from response
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                json_text = response_text[json_start:json_end].strip()
+            elif "{" in response_text:
+                json_start = response_text.find("{")
+                json_end = response_text.rfind("}") + 1
+                json_text = response_text[json_start:json_end]
+            else:
+                json_text = response_text
 
-                if "```json" in response_text:
-                    json_start = response_text.find("```json") + 7
-                    json_end = response_text.find("```", json_start)
-                    json_text = response_text[json_start:json_end].strip()
-                elif "{" in response_text:
-                    json_start = response_text.find("{")
-                    json_end = response_text.rfind("}") + 1
-                    json_text = response_text[json_start:json_end]
-                else:
-                    json_text = response_text
-
-                try:
-                    parsed_response = json.loads(json_text)
-                except json.JSONDecodeError:
-                    parsed_response = {"phrases": [{"text": response_text, "confidence": 0.7}]}
+            try:
+                parsed_response = json.loads(json_text)
+            except json.JSONDecodeError:
+                parsed_response = {"phrases": [{"text": response_text}]}
 
             # Validate and normalize against schema
             try:
@@ -191,18 +165,15 @@ Return only valid JSON that matches the required schema."""
                 for i, phrase in enumerate(parsed_response["phrases"]):
                     if not isinstance(phrase, dict):
                         raise ValueError(f"Phrase {i} is not an object")
-                    if "text" not in phrase or "confidence" not in phrase:
-                        raise ValueError(f"Phrase {i} missing required fields")
+                    if "text" not in phrase:
+                        raise ValueError(f"Phrase {i} missing required text field")
                     if not isinstance(phrase["text"], str):
                         raise ValueError(f"Phrase {i} text must be a string")
-                    if not isinstance(phrase["confidence"], (int, float)):
-                        raise ValueError(f"Phrase {i} confidence must be a number")
-                    confidence = max(0.0, min(1.0, float(phrase["confidence"])))
-                    validated_phrases.append({"text": phrase["text"], "confidence": confidence})
+                    validated_phrases.append({"text": phrase["text"], "confidence": 0.9})  # Default confidence
                 parsed_response["phrases"] = validated_phrases
             except (ValueError, KeyError) as e:
                 print(f"JSON validation error: {e}")
-                parsed_response = {"phrases": [{"text": "", "confidence": 0.0}]}
+                parsed_response = {"phrases": [{"text": "", "confidence": 0.9}]}
             
             # Extract phrases
             phrases_data = parsed_response.get("phrases", [])
