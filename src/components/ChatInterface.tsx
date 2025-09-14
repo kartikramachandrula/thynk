@@ -451,16 +451,7 @@ const ChatInterface = () => {
             </div>
           </div>
           
-          <div className="relative z-10 flex items-center justify-between px-8">
-            {/* Left side decorative image */}
-            <div className="flex items-center">
-              <img 
-                src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" 
-                alt="" 
-                className="w-8 h-8 rounded-full object-cover opacity-60 shadow-sm"
-              />
-            </div>
-            
+          <div className="relative z-10 flex items-center justify-center px-8">
             {/* Center content */}
             <div className="flex items-center gap-4">
               <Bot className="w-6 h-6 text-purple-200" />
@@ -470,15 +461,6 @@ const ChatInterface = () => {
               <div className="p-2 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 shadow-lg">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-            </div>
-            
-            {/* Right side decorative image */}
-            <div className="flex items-center">
-              <img 
-                src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" 
-                alt="" 
-                className="w-8 h-8 rounded-full object-cover opacity-60 shadow-sm"
-              />
             </div>
           </div>
         </div>
